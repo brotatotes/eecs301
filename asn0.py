@@ -168,7 +168,8 @@ def go_to_default():
 def go_to_state(statename):
     states = pickle.load( open("states.p", "rb"))
     state = states[statename]
-    setMotorTargetPositionsSync(len(state), range(1,9), [deg_to_adc(i,j) for i,j in zip(range(1,9), state)])
+    print state
+    setMotorTargetPositionsSync(len(state), range(1,9), state)
     
     
 def releaseMotors():
@@ -187,7 +188,7 @@ def captureState(name):
 # Main function
 if __name__ == "__main__":
     states = pickle.load( open("states.p", "rb"))
-    go_to_state("crouch")
+    go_to_state("default")
 
     rospy.init_node('example_node', anonymous=True)
     rospy.loginfo("Starting Group X Control Node...")
@@ -198,7 +199,7 @@ if __name__ == "__main__":
     DMS = 1
     
     
-    setMotorTargetPositionsSync(4, range(5,9), [deg_to_adc(i,0) for i in range(5,9)])
+    # setMotorTargetPositionsSync(4, range(5,9), [deg_to_adc(i,0) for i in range(5,9)])
     
 
     # control loop running at 10hz
