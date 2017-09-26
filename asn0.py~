@@ -190,8 +190,11 @@ def doBehavior1():
     behaviors = ["default", "crouch", "lean", "wiggle1", "wiggle2", "wiggle1", "wiggle2", "wiggle1", "wiggle2", "halfup", "default"]
     doBehavior(behaviors)
     
-def turnClockwise(i):
-    behaviors = ["lift1", "swing1", "lift2"]
+def turn(i, direction="clockwise"):
+    if direction == "clockwise":
+        behaviors = ["lift1", "swing1", "lift2"]
+    else:
+        behaviors = ["lift3", "swing3", "lift4"]
     doBehavior([behaviors[i%len(behaviors)]])
         
 def doBehavior(behaviors):
@@ -218,18 +221,8 @@ if __name__ == "__main__":
         captureState(s)
         print(s, "saved")
         engageMotors()
-    else:
-        go_to_default()
-        #b = ["lift3", "swing3", "lift4"] * 5
-        #doBehavior(b)
-        go_to_state("lift1")
-        
-        input()
-
-
-
-    
-    print(states)
+    else: # testing area
+        pass
 
 
     
@@ -239,27 +232,17 @@ if __name__ == "__main__":
     # DMS: 1
     DMS = 1
     
-    # setMotorTargetPositionsSync(4, range(5,9), [deg_to_adc(i,0) for i in range(5,9)])
     go_to_default()
 
-    # control loop running at 10hz
-    r = rospy.Rate(10) # 10hz
+    # control loop running at X Hz
+    r = rospy.Rate(1000) # 1000hz
     
-    irs = [0] * 100
+    irs = [0] * 3
     threshold = 50
     step = 0
+    objectSeen = False
+    direction = "clockwise"
     while not rospy.is_shutdown():
-        # call function to get sensor value
-        # port = DMS
-        # sensor_reading = getSensorValue(port)
-        # rospy.loginfo("Sensor value at port %d: %f", port, sensor_reading)
-
-        # call function to set motor position
-        # motor_id = 1
-        # target_val = 450
-        
-        # print([getMotorPositionCommand(i) for i in range(1,5)])
-        # response = setMotorTargetPositionCommand(motor_id, target_val)
         
         # behavior1
         irs[:len(irs)-1] = irs[1:]
@@ -267,19 +250,14 @@ if __name__ == "__main__":
         print(irs, map(lambda x: True if x > threshold else False, irs))
         if all(map(lambda x: True if x > threshold else False, irs)):
             doBehavior1()
-            
-            
-        
-        elif False:
-            print(getSensorValue(DMS))
-
-    
 
         else:
+            if getSensorValue(DMS) > 1000:
+                direction = "clockwise" if direction != "clockwise" else "counterclockwise"       
+        
             step += 1
-            turnClockwise(step)
+            turn(step, direction)
             
-        print(step)
         # sleep to enforce loop rate
         r.sleep()
         
