@@ -44,6 +44,15 @@ if __name__ == "__main__":
     elif selection == "3":
         asn1 = True
 
+        WALL = True
+        REACT = False
+
+        nvals = 5
+
+        leftVals = [0] * nvals
+        rightVals = [0] * nvals
+        frontVals = [0] * nvals
+
         go_to_default()
 
         raw_input("enter loop? ")
@@ -51,19 +60,32 @@ if __name__ == "__main__":
     else: # testing area
         test = True
 
+        # viewStates()
+        # raw_input("save?")
+        # states["right1"] = deg_to_adc_l([-90, 45, 45, -45, 20, 0, 0, 0])
+        # states["right2"] = deg_to_adc_l([-90, 45, 45, -45, 0, 0, 0, 0])
+        # states["right3"] = deg_to_adc_l([-90, 0, 45, -45, 0, 20, 0, 0])
+        # states["right4"] = deg_to_adc_l([-90, 0, 45, -45, 0, 0, 0, 0])
+        # states["right5"] = deg_to_adc_l([-90, 0, 45, -90, 0, 0, 0, 20])
+        # states["right6"] = deg_to_adc_l([-90, 0, 45, -90, 0, 0, 0, 0])
+        # states["right7"] = deg_to_adc_l([-90, 0, 0, -90, 0, 0, 20, 0])
+        # states["right8"] = deg_to_adc_l([-90, 0, 0, -90, 0, 0, 0, 0])
+        # pickle.dump(states, open("states.p", "wb"))
+
         raw_input("loop? ")
     
     # Sensor setup
-    IR1 = 1
-    IR2 = 2
-    DMS = 3
+    IR1 = 5 # left
+    IR2 = 3 # right
+    DMS = 1 # front
+    SENSORS = (IR1, IR2, DMS)
 
     # IR 1 is port 1
     # IR 2 is port 2
 
     # control loop running at X Hz
     r = rospy.Rate(1) # 1000hz
-    # go_to_default()
+    go_to_default()
     
     while not rospy.is_shutdown():
         
@@ -71,7 +93,6 @@ if __name__ == "__main__":
         if asn0:
             irs[:len(irs)-1] = irs[1:]
             irs[-1] = getSensorValue(IR1)
-            print(irs, map(lambda x: x > threshold, irs))
             if all(map(lambda x: x > threshold, irs)):
                 doBehavior1()
 
@@ -83,17 +104,38 @@ if __name__ == "__main__":
                 turn(step, direction)
 
         elif asn1:
-            go_to_default()
+            leftVals = [adc_to_cm(IR1, getSensorValue(IR1)) for _ in range(nvals)]
+            rightVals = [adc_to_cm(IR2, getSensorValue(IR2)) for _ in range(nvals)]
+            frontVals = [adc_to_cm(DMS, getSensorValue(DMS)) for _ in range(nvals)]
+
+
+
+            if WALL:
+                if within15(leftVals):    
+                    fineright()
+                    forward(2)
+                elif within15(rightVals):
+                    fineleft()
+                    forward(2)
+                else:
+                    forward(1)
+
+            elif REACT:
+
+                actionPlan = detectObstacles((leftVals, rightVals, frontVals))
+
+                if actionPlan == "180":
+                    turn180()
+                elif actionPlan == "R90":
+                    turn90()
+                elif actionPlan == "L90":
+                    turn90("counterclockwise")
+                else:
+                    forward(1)
+
 
         elif test:
-            ir1 = getSensorValue(IR1)
-            ir2 = getSensorValue(IR2)
-            dms = getSensorValue(DMS)
-            # print "IR 1: " + str(ir1)
-            # print "IR 2: " + str(ir2)
-            # print "Difference: " + str(abs(ir1 - ir2))
-            # print 
-            print "DMS: " + str(getSensorValue(DMS))
+            viewSensors(SENSORS)
             
         # sleep to enforce loop rate
         r.sleep()

@@ -211,9 +211,12 @@ def adc_to_cm(sensor, adc):
     ir works up to ~ 25 cm
     dms works ~ 7cm to 60 cm
     """
+    if adc <= 0:
+        return float("inf")
+
     a, b = get_sensor_consts(sensor)
 
-    return (math.log(adc) + a) / (b) 
+    return (math.log10(adc) + a) / (b) 
 
 def cm_to_adc(sensor, cm):
     """
@@ -226,7 +229,38 @@ def cm_to_adc(sensor, cm):
     """
     a, b = get_sensor_consts(sensor)
 
-    return math.exp(b * cm - a)
+    return 10 ** (b * cm - a)
+
+def viewSensors(sensors):
+    """
+    assumes sensors are the ports [IR1, IR2, DMS]
+    """
+    ir1, ir2, dms = sensors
+    adc = map(getSensorValue, sensors)
+    vals = [-1]*3
+    for i,p in enumerate(sensors):
+        vals[i] = adc_to_cm(i+1, adc[i])
+    print "SENSOR DATA"
+    print "IR1: %d adc\nIR2: %d adc\nDMS: %d adc" % (adc[0], adc[1], adc[2])
+    print "IR1: %.2fcm\nIR2: %.2fcm\nDMS: %.2fcm\n" % (vals[0], vals[1], vals[2])
+
+def detectObstacles(vals):
+    left, right, front = map(within15, vals)
+
+    if not front:
+        return "F"
+    else:
+        if left and right:
+            return "180"
+        elif left:
+            return "R90"
+        else:
+            return "L90"
+
+def within15(val):
+    threshold = 15
+    return all(map(lambda x: x <= threshold, val))
+
 
 #################################### State Management ####################################
 
@@ -265,6 +299,18 @@ def viewStates():
         print k, "\t\t", degs
 
 #################################### Macro Actions ####################################
+
+def fineleft():
+    b = []
+    for i in range(1,9):
+        b.append("left"+str(i))
+    doBehavior(b)
+
+def fineright():
+    b = []
+    for i in range(1,9):
+        b.append("right"+str(i))
+    doBehavior(b)
     
 def turn(i, direction="clockwise"):
     if direction == "clockwise":
