@@ -193,24 +193,27 @@ def engageMotors():
         setMotorMode(i,0)
 
 #################################### Sensor Handling #####################################
+def get_sensor_consts(sensor):
+    if sensor == 1:
+        a, b = -3.2194, -0.0899
+    elif sensor == 2:
+        a, b = -3.3428, -0.0803
+    else:
+        a, b = -3.5668, -0.0252
+    return a,b
 
 def adc_to_cm(sensor, adc): 
     """
     sensor == 1 is ir1
     sensor == 2 is ir2
     sensor == 0 is dms
-    
+
     ir works up to ~ 25 cm
     dms works ~ 7cm to 60 cm
     """
-    if sensor == 1:
-        a, b = -3.2194, -0.0899
-    elif sensor == 2:
-        a, b = -3.3428, -0.0803
-    else:
-        pass # dms
+    a, b = get_sensor_consts(sensor)
 
-    return (math.log(adc) + a) / (b)
+    return (math.log(adc) + a) / (b) 
 
 def cm_to_adc(sensor, cm):
     """
@@ -221,12 +224,7 @@ def cm_to_adc(sensor, cm):
     ir works up to ~ 25 cm
     dms works ~ 7cm to 60 cm
     """
-    if sensor == 1:
-        a, b = -3.2194, -0.0899
-    elif sensor == 2:
-        a, b = -3.3428, -0.0803
-    else:
-        pass # dms
+    a, b = get_sensor_consts(sensor)
 
     return math.exp(b * cm - a)
 
