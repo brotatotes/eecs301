@@ -195,11 +195,11 @@ def engageMotors():
 #################################### Sensor Handling #####################################
 def get_sensor_consts(sensor):
     if sensor == 1:
-        a, b = -3.2194, -0.0899
+        a, b = -7.4689, -0.1898
     elif sensor == 2:
-        a, b = -3.3428, -0.0803
+        a, b = -7.5156, -0.1777
     else:
-        a, b = -3.5668, -0.0252
+        a, b = -7.9882, -0.0505
     return a,b
 
 def adc_to_cm(sensor, adc): 
@@ -216,7 +216,7 @@ def adc_to_cm(sensor, adc):
 
     a, b = get_sensor_consts(sensor)
 
-    return (math.log10(adc) + a) / (b) 
+    return (math.log(adc) + a) / (b)
 
 def cm_to_adc(sensor, cm):
     """
@@ -229,7 +229,7 @@ def cm_to_adc(sensor, cm):
     """
     a, b = get_sensor_consts(sensor)
 
-    return 10 ** (b * cm - a)
+    return math.exp(b * cm - a)
 
 def viewSensors(sensors):
     """
@@ -245,7 +245,9 @@ def viewSensors(sensors):
     print "IR1: %.2fcm\nIR2: %.2fcm\nDMS: %.2fcm\n" % (vals[0], vals[1], vals[2])
 
 def detectObstacles(vals):
-    left, right, front = map(within15, vals)
+    left = tooclose(vals[0], 23)
+    right = tooclose(vals[1], 23)
+    front = tooclose(vals[2], 23)
 
     if not front:
         return "F"
@@ -257,9 +259,11 @@ def detectObstacles(vals):
         else:
             return "L90"
 
-def within15(val):
-    threshold = 15
+def tooclose(val, threshold):
     return all(map(lambda x: x <= threshold, val))
+
+def toofar(val, threshold):
+    return all(map(lambda x: x >= threshold, val))    
 
 
 #################################### State Management ####################################
@@ -273,9 +277,9 @@ def go_to_state(statename):
         state = states[statename]
     elif type(statename) is list:
         state = statename
-    print("Attempting", statename)
+    # print("Attempting", statename)
     setMotorTargetPositionsSync(len(state), range(1,9), state)
-    print("Completed", statename)
+    # print("Completed", statename)
         
 def captureState(name):
     states = pickle.load( open("states.p", "rb"))
@@ -304,12 +308,14 @@ def fineleft():
     b = []
     for i in range(1,9):
         b.append("left"+str(i))
+    b.append("default")
     doBehavior(b)
 
 def fineright():
     b = []
     for i in range(1,9):
         b.append("right"+str(i))
+    b.append("default")
     doBehavior(b)
     
 def turn(i, direction="clockwise"):
@@ -321,27 +327,32 @@ def turn(i, direction="clockwise"):
 
 def turn90(direction="clockwise"):
     if direction == "clockwise":
-        b = ["lift2", "lift1"] * 3
+        b = ["lift2", "lift1"] * 4
         doBehavior(b)
         go_to_default()
     else:
-        b = ["lift4", "lift3"] * 3 + ["lift4"]
+        b = ["lift4", "lift3"] * 4 + ["lift4"]
         doBehavior(b)
         go_to_default()
 
 def turn180(direction="clockwise"):
     if direction == "clockwise":
-        b = ["lift2", "lift1"] * 6
+        b = ["lift2", "lift1"] * 9
         doBehavior(b)
         go_to_default()
     else:
-        b = ["lift4", "lift3"] * 6 + ["lift4"]
+        b = ["lift4", "lift3"] * 9 + ["lift4"]
         doBehavior(b)
         go_to_default()
         
 def forward(cycles = 1):
     states = pickle.load( open("states.p", "rb"))
     b = [states["forward1"], states["forward2"]] * cycles
+    doBehavior(b)
+
+def rightforward(cycles = 1):
+    states = pickle.load( open("states.p", "rb"))
+    b = [states["forward2"], states["forward1"]] * cycles
     doBehavior(b)
 
 def backward(cycles = 1):

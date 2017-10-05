@@ -44,10 +44,20 @@ if __name__ == "__main__":
     elif selection == "3":
         asn1 = True
 
-        WALL = True
-        REACT = False
-
         nvals = 5
+
+        LEFT_WALL = RIGHT_WALL = REACT = False
+
+        action = raw_input("Select Action:\n1. Follow wall on left.\n2. Follow wall on right.\n3. Reactive control.\n>>>")
+        if action == "1":
+            LEFT_WALL = True
+        elif action == "2":
+            RIGHT_WALL = True
+        elif action == "3":
+            REACT = True
+        else:
+            print("Invalid selection '" + action + "' Quiting...")
+            sys.exit()
 
         leftVals = [0] * nvals
         rightVals = [0] * nvals
@@ -57,25 +67,17 @@ if __name__ == "__main__":
 
         raw_input("enter loop? ")
 
-    else: # testing area
+    elif selection == "4": # testing area
         test = True
 
-        # viewStates()
-        # raw_input("save?")
-        # states["right1"] = deg_to_adc_l([-90, 45, 45, -45, 20, 0, 0, 0])
-        # states["right2"] = deg_to_adc_l([-90, 45, 45, -45, 0, 0, 0, 0])
-        # states["right3"] = deg_to_adc_l([-90, 0, 45, -45, 0, 20, 0, 0])
-        # states["right4"] = deg_to_adc_l([-90, 0, 45, -45, 0, 0, 0, 0])
-        # states["right5"] = deg_to_adc_l([-90, 0, 45, -90, 0, 0, 0, 20])
-        # states["right6"] = deg_to_adc_l([-90, 0, 45, -90, 0, 0, 0, 0])
-        # states["right7"] = deg_to_adc_l([-90, 0, 0, -90, 0, 0, 20, 0])
-        # states["right8"] = deg_to_adc_l([-90, 0, 0, -90, 0, 0, 0, 0])
-        # pickle.dump(states, open("states.p", "wb"))
-
         raw_input("loop? ")
+
+    else:
+        print("Invalid selection '" + selection + "' Quiting...")
+        sys.exit()
     
     # Sensor setup
-    IR1 = 5 # left
+    IR1 = 2 # left
     IR2 = 3 # right
     DMS = 1 # front
     SENSORS = (IR1, IR2, DMS)
@@ -84,7 +86,10 @@ if __name__ == "__main__":
     # IR 2 is port 2
 
     # control loop running at X Hz
-    r = rospy.Rate(1) # 1000hz
+    r = rospy.Rate(1000) # 1000hz
+    go_to_default()
+    f = False
+
     go_to_default()
     
     while not rospy.is_shutdown():
@@ -104,25 +109,64 @@ if __name__ == "__main__":
                 turn(step, direction)
 
         elif asn1:
-            leftVals = [adc_to_cm(IR1, getSensorValue(IR1)) for _ in range(nvals)]
-            rightVals = [adc_to_cm(IR2, getSensorValue(IR2)) for _ in range(nvals)]
-            frontVals = [adc_to_cm(DMS, getSensorValue(DMS)) for _ in range(nvals)]
+            leftVals = [adc_to_cm(1, getSensorValue(IR1)) for _ in range(nvals)]
+            rightVals = [adc_to_cm(2, getSensorValue(IR2)) for _ in range(nvals)]
+            frontVals = [adc_to_cm(0, getSensorValue(DMS)) for _ in range(nvals)]
+
+            if not (LEFT_WALL or RIGHT_WALL or REACT):
+                LEFT_WALL = True
+            # figure out left_wall or right_wall or react:
 
 
+            if RIGHT_WALL:
+                go_to_default()
+                ## follow left wall
+                # actionPlan = detectObstacles((leftVals, rightVals, frontVals))
 
-            if WALL:
-                if within15(leftVals):    
+                print("leftVals:", leftVals)
+                print("rightVals:", rightVals)
+                print("frontVals:", frontVals)
+                # print("actionPlan:", actionPlan)
+                # print 
+
+                if toofar(rightVals, 20):    
                     fineright()
-                    forward(2)
-                elif within15(rightVals):
+                    forward()
+                elif tooclose(rightVals, 13):
                     fineleft()
-                    forward(2)
+                    forward()
                 else:
-                    forward(1)
+                    forward()
+
+            elif LEFT_WALL:
+                go_to_default()
+
+                # actionPlan = detectObstacles((leftVals, rightVals, frontVals))
+
+                print("leftVals:", leftVals)
+                print("rightVals:", rightVals)
+                print("frontVals:", frontVals)
+                # print("actionPlan:", actionPlan)
+                # print 
+
+                if toofar(leftVals, 20):    
+                    fineleft()
+                    rightforward()
+                elif tooclose(leftVals, 12):
+                    fineright()
+                    rightforward()
+                else:
+                    rightforward()
 
             elif REACT:
-
+                go_to_default()
                 actionPlan = detectObstacles((leftVals, rightVals, frontVals))
+
+                print("leftVals:", leftVals)
+                print("rightVals:", rightVals)
+                print("frontVals:", frontVals)
+                print("actionPlan:", actionPlan)
+                print 
 
                 if actionPlan == "180":
                     turn180()
@@ -131,14 +175,26 @@ if __name__ == "__main__":
                 elif actionPlan == "L90":
                     turn90("counterclockwise")
                 else:
-                    forward(1)
+                    forward()
 
 
         elif test:
-            viewSensors(SENSORS)
+            # viewSensors(SENSORS)
+            if f:
+                moveMotor(6, 5)
+                f = False
+            else:
+                moveMotor(6, 0)
+                f = True
+            # for port in range(1,7):
+            #     print(port, getSensorValue(port))
+            viewSensors(SENSORS);
+
+            # turn180()
+            # raw_input()
             
         # sleep to enforce loop rate
-        r.sleep()
+        # r.sleep()
         
 
         
