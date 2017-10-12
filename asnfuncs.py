@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import roslib, rospy, pickle, sys, math
+import roslib, rospy, pickle, sys, math, time
 from fw_wrapper.srv import *
 
 # -----------SERVICE DEFINITION-----------
@@ -79,6 +79,16 @@ def setMotorTargetPositionsSync(n, motor_ids, target_vals):
         return resp1.val
     except rospy.ServiceException, e:
         print "Service call failed: %s"%e
+
+def setWheelSpeedSync(n, motor_ids, target_vals):
+    rospy.wait_for_service('allcmd')
+    try:
+        send_command = rospy.ServiceProxy('allcmd', allcmd)
+        resp1 = send_command('SetWheelSpeedSync', 0, 0, n, motor_ids, target_vals)
+        return resp1.val
+    except rospy.ServiceException, e:
+        print "Service call failed: %s"%e
+
 
 # wrapper function to call service to get sensor value
 def getSensorValue(port):
@@ -185,12 +195,103 @@ def adc_to_deg_l(l):
     return [adc_to_deg(i+1, d) for i,d in enumerate(l)]
 
 def releaseMotors():
-    for i in range(1,9):
+    for i in range(1,9) + range(11,15):
         setMotorMode(i,1)
         
 def engageMotors():
-    for i in range(1,9):
+    for i in range(1,9) + range(11,15):
         setMotorMode(i,0)
+
+#################################### Wheel Handling #####################################
+
+def drive(direction = 0, state = 'x'):
+    # we don't know what 0 direction means yet
+    if state == 'x':
+        if direction == 0: # west
+            speeds = [1023, 1023, 2047, 2047]
+        else: # east
+            speeds = [2047, 2047, 1023, 1023]
+    else:
+        if direction == 0: # west
+            speeds = [2047, 1023, 2047, 1023]
+        else: # east
+            speeds = [1023, 2047, 1023, 2047]
+            
+
+    for i in range(11,15):
+        setMotorMode(i, 1)
+    
+    setWheelSpeedSync(4, range(11,15), speeds)
+
+    time.sleep(1.73)
+
+    stopDrive()
+
+def wheelTurn():
+    speeds = [1023] * 4
+
+    for i in range(11,15):
+        setMotorMode(i, 1)
+    
+    setWheelSpeedSync(4, range(11,15), speeds)
+    time.sleep(2)
+    stopDrive()
+
+def xToY():
+    moveMotor(6, 25)
+    moveMotor(2, 90)
+    moveMotor(6, 0)
+
+    moveMotor(7, 25)
+    moveMotor(3, 90)
+    moveMotor(7, 0)
+
+    moveMotor(5, 25)
+    moveMotor(1, -90)
+    moveMotor(5, 0)
+
+    moveMotor(8, 25)
+    moveMotor(4, -90)
+    moveMotor(8, 0)
+
+def yToX():
+    moveMotor(6, 25)
+    moveMotor(2, 0)
+    moveMotor(6, 0)
+
+    moveMotor(7, 25)
+    moveMotor(3, 0)
+    moveMotor(7, 0)
+
+    moveMotor(5, 25)
+    moveMotor(1, 0)
+    moveMotor(5, 0)
+
+    moveMotor(8, 25)
+    moveMotor(4, 0)
+    moveMotor(8, 0)
+
+def switch(state = "x"):
+    
+
+    if state == "x":
+        targets = [0] * 8
+    else:
+        targets = [-90, 90, 90, -90] + [0] * 4
+
+    for i in range(1,9):
+        # setMotorWheelSpeed(i, 1000)
+        # moveMotor(i, targets[i-1])
+        # time.sleep(1)
+        targets[i-1] = deg_to_adc(i, targets[i-1])
+
+    setMotorTargetPositionsSync(8, range(1,9), targets)
+
+
+
+def stopDrive():
+    setWheelSpeedSync(4, range(11,15), [0] * 4)
+
 
 #################################### Sensor Handling #####################################
 def get_sensor_consts(sensor):
@@ -270,6 +371,7 @@ def toofar(val, threshold):
 
 def go_to_default():
     go_to_state("default")
+
     
 def go_to_state(statename):
     if type(statename) is str:
