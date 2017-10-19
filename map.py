@@ -483,8 +483,8 @@ class EECSMap():
                     visited.add((tile[0], tile[1]))
 
 
-m = EECSMap()
-m.printObstacleMap()
-m.buildCostMap((5,7))
-m.printObstacleMap()
-m.printCostMap()
+# m = EECSMap()
+# m.printObstacleMap()
+# m.buildCostMap((5,7))
+# m.printObstacleMap()
+# m.printCostMap()
