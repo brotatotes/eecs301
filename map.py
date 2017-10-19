@@ -308,6 +308,7 @@ class EECSMap():
             if (j < 7):
                 self.costMap[i][j+1] = val
 
+
     # ******************************************************************************
     # Function Name  : setCost
     # Description    : Used for map building, sets the calculated cost of a given map cell
@@ -347,10 +348,10 @@ class EECSMap():
     # Output         : None
     # Return         : None
     # *****************************************************************************/
-    def clearCostMap(self):
+    def clearCostMap(self, val=0):
         for i in xrange(8):
             for j in xrange(8):
-                self.costMap[i][j] = 0
+                self.costMap[i][j] = val
 
     # ******************************************************************************
     # Function Name  : clearObstacleMap
@@ -446,3 +447,44 @@ class EECSMap():
             return self.obstacle_size_x
         else:
             return self.obstacle_size_y
+
+    def getNeighborCoord(self, i, j, dir):
+        if dir == DIRECTION.North:
+            return (i-1,j)
+        elif dir == DIRECTION.South:
+            return (i+1,j)
+        elif dir == DIRECTION.West:
+            return (i, j-1)
+        elif dir == DIRECTION.East:
+            return (i, j+1)
+
+    def inRange(self, i, j):
+        return (i >= 0 and i <= 7 and j >= 0 and j <= 7)
+
+    def buildCostMap(self, target):
+        self.clearCostMap(float("inf"))
+        xSize, ySize = self.getCostmapSize(True), self.getCostmapSize(False)
+        xRange, yRange = range(xSize), range(ySize)
+
+        if not (target[0] in xRange and target[1] in yRange):
+            raise Exception("target postion out of range.")
+
+        # initialize target cost to 0.
+        self.setCost(target[0], target[1], 0)
+        visited = set([(target[0], target[1])])
+        queue = [target]
+        while queue:
+            tile = queue.pop()
+            for direc in range(1,5):
+                newTile = self.getNeighborCoord(tile[0], tile[1], direc)
+                if self.inRange(newTile[0], newTile[1]) and not newTile in visited and self.getNeighborObstacle(tile[0], tile[1], direc) == 0:
+                    self.setNeighborCost(tile[0], tile[1], direc, min(self.getCost(tile[0], tile[1]) + 1, self.getNeighborCost(tile[0], tile[1], direc)))
+                    queue.append(newTile)
+                    visited.add((tile[0], tile[1]))
+
+
+m = EECSMap()
+m.printObstacleMap()
+m.buildCostMap((5,7))
+m.printObstacleMap()
+m.printCostMap()
