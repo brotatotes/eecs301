@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import roslib, rospy, pickle, sys, math, time
 from fw_wrapper.srv import *
+from map import *
 
 # -----------SERVICE DEFINITION-----------
 # allcmd REQUEST DATA
@@ -69,7 +70,7 @@ def setMotorTargetSpeed(motor_id, target_val):
         return resp1.val
     except rospy.ServiceException, e:
         print "Service call failed: %s"%e
-        
+
 # wrapper function to call service to SetMotorTargetPositionsSync
 def setMotorTargetPositionsSync(n, motor_ids, target_vals):
     rospy.wait_for_service('allcmd')
@@ -135,18 +136,18 @@ def getIsMotorMovingCommand(motor_id):
 def moveMotor(motor_id, deg):
     # thighs: top down counter-clockwise
     # legs: down, up
-    motor_ranges = {1:(160,720), 2:(280,850), 3:(280,850), 4:(160,720), 
+    motor_ranges = {1:(160,720), 2:(280,850), 3:(280,850), 4:(160,720),
                     5:(160,820), 6:(860,200), 7:(860,200), 8:(160,820)}
-                    
+
     if not motor_id in range(1,9):
         raise Exception("Unrecognized Motor ID.")
-        
+
     adc = deg_to_adc(motor_id, deg)
-    
+
     r = motor_ranges[motor_id]
-    
+
     current_pos = getMotorPositionCommand(motor_id)
-    
+
     if adc >= 0:
         if r[0] < r[1]:
             d = min(adc, r[1])
@@ -157,13 +158,13 @@ def moveMotor(motor_id, deg):
             d = max(adc, r[0])
         else:
             d = min(adc, r[0])
-            
+
     print("Attempting to move from", current_pos, "to", d, "within", r)
-    
+
     return setMotorTargetPositionCommand(motor_id, d)
 
     print("Motor move completed.")
-    
+
 def deg_to_adc(motor_id, deg):
     if motor_id in (5,8):
         return 3.41 * deg + 205
@@ -197,7 +198,7 @@ def adc_to_deg_l(l):
 def releaseMotors():
     for i in range(1,9) + range(11,15):
         setMotorMode(i,1)
-        
+
 def engageMotors():
     for i in range(1,9) + range(11,15):
         setMotorMode(i,0)
@@ -239,9 +240,6 @@ def drive(direction, state):
         time.sleep(1.95)
 
 
-   
-    
-
     stopDrive()
 
     return state
@@ -251,7 +249,7 @@ def wheelTurn():
 
     for i in range(11,15):
         setMotorMode(i, 1)
-    
+
     setWheelSpeedSync(4, range(11,15), speeds)
     time.sleep(2)
     stopDrive()
@@ -262,7 +260,7 @@ def xToY():
     moveMotor(7, 15)
     moveMotor(3, 90)
     moveMotor(7, 0)
-    
+
     # raw_input()
     moveMotor(6, 15)
     moveMotor(2, 90)
@@ -277,7 +275,7 @@ def xToY():
     moveMotor(1, -90)
     moveMotor(5, 0)
     moveMotor(8, 0)
-    
+
 
 
 def yToX():
@@ -317,6 +315,39 @@ def switch(state = "x"):
 def stopDrive():
     setWheelSpeedSync(4, range(11,15), [0] * 4)
 
+##################################### Map Handling ######################################
+
+def findPath(eecsmap, start, target):
+    xSize, ySize = eecsmap.getCostmapSize(True), eecsmap.getCostmapSize(False)
+    xRange, yRange = range(xSize), range(ySize)
+
+    if not (start[0] in xRange and start[1] in yRange):
+        raise Exception("target postion out of range.")
+
+    if not (target[0] in xRange and target[1] in yRange):
+        raise Exception("target postion out of range.")
+
+    eecsmap.buildCostMap(target)
+
+    path = []
+    curr = start
+    while curr != target:
+        nexts = []
+        for direc in range(1,5):
+            potential = eecsmap.getNeighborCoord(curr[0], curr[1], direc)
+            if eecsmap.inRange(potential[0], potential[1]) and eecsmap.getNeighborObstacle(curr[0], curr[1], direc) == 0:
+                nexts.append((potential, direc))
+        best = min(nexts, key=lambda n: eecsmap.getCost(n[0][0], n[0][1]))
+        # best should never be worse than curr
+        path.append(best[1])
+        curr = best[0]
+
+    return path
+
+from map import *
+m = EECSMap()
+print(findPath(m, (0,0), (7,6)))
+m.printCostMap()
 
 #################################### Sensor Handling #####################################
 def get_sensor_consts(sensor):
@@ -328,7 +359,7 @@ def get_sensor_consts(sensor):
         a, b = -7.9882, -0.0505
     return a,b
 
-def adc_to_cm(sensor, adc): 
+def adc_to_cm(sensor, adc):
     """
     sensor == 1 is ir1
     sensor == 2 is ir2
@@ -349,7 +380,7 @@ def cm_to_adc(sensor, cm):
     sensor == 1 is ir1
     sensor == 2 is ir2
     sensor == 0 is dms
-    
+
     ir works up to ~ 25 cm
     dms works ~ 7cm to 60 cm
     """
@@ -389,7 +420,7 @@ def tooclose(val, threshold):
     return all(map(lambda x: x <= threshold, val))
 
 def toofar(val, threshold):
-    return all(map(lambda x: x >= threshold, val))    
+    return all(map(lambda x: x >= threshold, val))
 
 
 #################################### State Management ####################################
@@ -397,7 +428,7 @@ def toofar(val, threshold):
 def go_to_default():
     go_to_state("default")
 
-    
+
 def go_to_state(statename):
     if type(statename) is str:
         states = pickle.load( open("states.p", "rb"))
@@ -407,12 +438,12 @@ def go_to_state(statename):
     # print("Attempting", statename)
     setMotorTargetPositionsSync(len(state), range(1,9), state)
     # print("Completed", statename)
-        
+
 def captureState(name):
     states = pickle.load( open("states.p", "rb"))
     states[name] = [getMotorPositionCommand(i) for i in range(1,9)]
     pickle.dump(states, open("states.p", "wb"))
-    
+
 def doBehavior1():
     behaviors = ["default", "crouch", "lean", "wiggle1", "wiggle2", "wiggle1", "wiggle2", "wiggle1", "wiggle2", "halfup", "default"]
     doBehavior(behaviors)
@@ -444,7 +475,7 @@ def fineright():
         b.append("right"+str(i))
     b.append("default")
     doBehavior(b)
-    
+
 def turn(i, direction="clockwise"):
     if direction == "clockwise":
         behaviors = ["lift1", "lift2"] # ["lift1", "swing1", "lift2"]
@@ -471,7 +502,7 @@ def turn180(direction="clockwise"):
         b = ["lift4", "lift3"] * 9 + ["lift4"]
         doBehavior(b)
         go_to_default()
-        
+
 def forward(cycles = 1):
     states = pickle.load( open("states.p", "rb"))
     b = [states["forward1"], states["forward2"]] * cycles

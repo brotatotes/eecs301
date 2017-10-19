@@ -1,7 +1,6 @@
 #!/usr/bin/env python
-from asnfuncs import *
-from map import *
 import time
+from asnfuncs import *
 
 # roscore
 # rosrun fw_wrapper srv_wrapper
@@ -12,7 +11,7 @@ import time
 if __name__ == "__main__":
     rospy.init_node('example_node', anonymous=True)
     rospy.loginfo("Starting Group X Control Node...")
-    
+
     # load states
     states = pickle.load( open("states.p", "rb"))
     print("States loaded:", states.keys())
@@ -30,15 +29,15 @@ if __name__ == "__main__":
 
     # control loop running at X Hz
     r = rospy.Rate(1000) # 1000hz
-    
+
     # select mode to run
     print("Select one:")
     print("0. asn2")
     print("1. capture mode")
     print("2. check sensors")
-    
+
     selection = raw_input(">>> ")
-    
+
     # setup for each  mode
     if selection == "1":
         releaseMotors()
@@ -94,7 +93,7 @@ if __name__ == "__main__":
 
 
     # while not rospy.is_shutdown():
-        
+
 
 
         # sleep to enforce loop rate
@@ -107,11 +106,3 @@ if __name__ == "__main__":
 
         # drive(1)
         # raw_input()
-
-        
-
-
-        
-    
-        
-
