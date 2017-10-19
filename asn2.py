@@ -79,21 +79,18 @@ if __name__ == "__main__":
         sys.exit()
 
 
-    for i in range(1,9):
-        moveMotor(i, 0)
-
 
     start = time.time()
 
 
     STATE = drive('e', STATE)
-    STATE = drive('s', STATE)
     STATE = drive('e', STATE)
-    STATE = drive('s', STATE)
     STATE = drive('e', STATE)
-    STATE = drive('s', STATE)
     STATE = drive('e', STATE)
-    STATE = drive('s', STATE)
+    # STATE = drive('e', STATE)
+    # STATE = drive('s', STATE)
+    # STATE = drive('e', STATE)
+    # STATE = drive('s', STATE)
 
 
     # while not rospy.is_shutdown():

@@ -166,21 +166,21 @@ def moveMotor(motor_id, deg):
     
 def deg_to_adc(motor_id, deg):
     if motor_id in (5,8):
-        return 3.36 * deg + 210
+        return 3.41 * deg + 205
     elif motor_id in (6,7):
-        return -3.36 * deg + 815
+        return -3.41 * deg + 818
     elif motor_id in (1,2,3,4):
-        return 3.36 * deg + 512
+        return 3.41 * deg + 512
     else:
         raise Exception("Unrecognized Motor ID.")
 
 def adc_to_deg(motor_id, adc):
     if motor_id in (5,8):
-        return (adc - 210) / 3.36
+        return (adc - 205) / 3.41
     elif motor_id in (6,7):
-        return (adc - 815) / -3.36
+        return (adc - 818) / -3.41
     elif motor_id in (1,2,3,4):
-        return (adc - 512) / 3.36
+        return (adc - 512) / 3.41
     else:
         raise Exception("Unrecognized Motor ID.")
 
@@ -206,34 +206,41 @@ def engageMotors():
 
 def drive(direction, state):
     # we don't know what 0 direction means yet
+    for i in range(11,15):
+        setMotorMode(i, 1)   
     d = direction.lower()
     if d == "n":
         if state == 'X':
             xToY()
             state = 'Y'
         speeds = [1023, 2047, 1023, 2047]
+        setWheelSpeedSync(4, range(11,15), speeds)
+        time.sleep(1.9)
     elif d == "s":
         if state == 'X':
             xToY()
             state = 'Y'
         speeds = [2047, 1023, 2047, 1023]
+        setWheelSpeedSync(4, range(11,15), speeds)
+        time.sleep(1.9)
     elif d == "w":
         if state == 'Y':
             yToX()
             state = 'X'
         speeds = [1023, 1023, 2047, 2047]
+        setWheelSpeedSync(4, range(11,15), speeds)
+        time.sleep(1.95)
     elif d == "e":
         if state == 'Y':
             yToX()
             state = 'X'
         speeds = [2047, 2047, 1023, 1023]
+        setWheelSpeedSync(4, range(11,15), speeds)
+        time.sleep(1.95)
 
-    for i in range(11,15):
-        setMotorMode(i, 1)
+
+   
     
-    setWheelSpeedSync(4, range(11,15), speeds)
-
-    time.sleep(1.8)
 
     stopDrive()
 
@@ -275,11 +282,11 @@ def xToY():
 
 def yToX():
     moveMotor(6, 15)
-    moveMotor(2, 0)
+    moveMotor(2, -2)
     moveMotor(6, 0)
 
     moveMotor(7, 15)
-    moveMotor(3, 0)
+    moveMotor(3, -2)
     moveMotor(7, 0)
 
     moveMotor(5, 15)
@@ -293,9 +300,9 @@ def yToX():
 def switch(state = "x"):
 
     if state == "x":
-        targets = [0] * 8
+        targets = [0,-2,-2,0]+[0] * 4
     else:
-        targets = [-90, 90, 90, -90] + [0] * 4
+        targets = [-90, 90, 90, -90] + [0] *4
 
     for i in range(1,9):
         # setMotorWheelSpeed(i, 1000)
