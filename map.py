@@ -458,23 +458,26 @@ class EECSMap():
         elif dir == DIRECTION.East:
             return (i, j+1)
 
+        raise Exception("Invalid direction given.")
+
     def inRange(self, i, j):
         return (i >= 0 and i <= 7 and j >= 0 and j <= 7)
 
     def buildCostMap(self, target):
-        self.clearCostMap(float("inf"))
         xSize, ySize = self.getCostmapSize(True), self.getCostmapSize(False)
         xRange, yRange = range(xSize), range(ySize)
 
         if not (target[0] in xRange and target[1] in yRange):
             raise Exception("target postion out of range.")
 
+        self.clearCostMap(float("inf"))
+
         # initialize target cost to 0.
         self.setCost(target[0], target[1], 0)
         visited = set([(target[0], target[1])])
         queue = [target]
         while queue:
-            tile = queue.pop()
+            tile = queue.pop(0)
             for direc in range(1,5):
                 newTile = self.getNeighborCoord(tile[0], tile[1], direc)
                 if self.inRange(newTile[0], newTile[1]) and not newTile in visited and self.getNeighborObstacle(tile[0], tile[1], direc) == 0:
@@ -485,6 +488,6 @@ class EECSMap():
 
 # m = EECSMap()
 # m.printObstacleMap()
-# m.buildCostMap((5,7))
+# m.buildCostMap((7,6))
 # m.printObstacleMap()
 # m.printCostMap()
