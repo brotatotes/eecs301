@@ -70,6 +70,7 @@ if __name__ == "__main__":
         MAP.printObstacleMap()
 
         switch('x')
+        STATE = 'X'
 
         raw_input("loop? ")
 
@@ -85,12 +86,17 @@ if __name__ == "__main__":
     start = time.time()
 
 
-    xToY()
-    drive(0, 'y')
-    drive(0, 'y')
-    drive(0, 'y')
+    STATE = drive('e', STATE)
+    STATE = drive('s', STATE)
+    STATE = drive('e', STATE)
+    STATE = drive('s', STATE)
+    STATE = drive('e', STATE)
+    STATE = drive('s', STATE)
+    STATE = drive('e', STATE)
+    STATE = drive('s', STATE)
 
-    # while not rospy.is_shutdown() or time.time() - start > 5000:
+
+    # while not rospy.is_shutdown():
         
 
 
@@ -98,9 +104,9 @@ if __name__ == "__main__":
         # r.sleep()
 
         # xToY()
-        # raw_input()
+        # raw_input("start yToX? ")
         # yToX()
-        # raw_input()
+        # raw_input("start xToY? ")
 
         # drive(1)
         # raw_input()

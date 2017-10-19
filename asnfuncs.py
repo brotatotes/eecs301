@@ -204,28 +204,40 @@ def engageMotors():
 
 #################################### Wheel Handling #####################################
 
-def drive(direction = 0, state = 'x'):
+def drive(direction, state):
     # we don't know what 0 direction means yet
-    if state == 'x':
-        if direction == 0: # west
-            speeds = [1023, 1023, 2047, 2047]
-        else: # east
-            speeds = [2047, 2047, 1023, 1023]
-    else:
-        if direction == 0: # west
-            speeds = [2047, 1023, 2047, 1023]
-        else: # east
-            speeds = [1023, 2047, 1023, 2047]
-            
+    d = direction.lower()
+    if d == "n":
+        if state == 'X':
+            xToY()
+            state = 'Y'
+        speeds = [1023, 2047, 1023, 2047]
+    elif d == "s":
+        if state == 'X':
+            xToY()
+            state = 'Y'
+        speeds = [2047, 1023, 2047, 1023]
+    elif d == "w":
+        if state == 'Y':
+            yToX()
+            state = 'X'
+        speeds = [1023, 1023, 2047, 2047]
+    elif d == "e":
+        if state == 'Y':
+            yToX()
+            state = 'X'
+        speeds = [2047, 2047, 1023, 1023]
 
     for i in range(11,15):
         setMotorMode(i, 1)
     
     setWheelSpeedSync(4, range(11,15), speeds)
 
-    time.sleep(1.73)
+    time.sleep(1.8)
 
     stopDrive()
+
+    return state
 
 def wheelTurn():
     speeds = [1023] * 4
@@ -238,41 +250,47 @@ def wheelTurn():
     stopDrive()
 
 def xToY():
-    moveMotor(6, 25)
+
+    # raw_input()
+    moveMotor(7, 15)
+    moveMotor(3, 90)
+    moveMotor(7, 0)
+    
+    # raw_input()
+    moveMotor(6, 15)
     moveMotor(2, 90)
     moveMotor(6, 0)
 
-    moveMotor(7, 25)
-    moveMotor(3, 90)
-    moveMotor(7, 0)
+    # raw_input()
+    moveMotor(8, 15)
+    moveMotor(4, -90)
+    # raw_input()
 
-    moveMotor(5, 25)
+    moveMotor(5, 15)
     moveMotor(1, -90)
     moveMotor(5, 0)
-
-    moveMotor(8, 25)
-    moveMotor(4, -90)
     moveMotor(8, 0)
+    
+
 
 def yToX():
-    moveMotor(6, 25)
+    moveMotor(6, 15)
     moveMotor(2, 0)
     moveMotor(6, 0)
 
-    moveMotor(7, 25)
+    moveMotor(7, 15)
     moveMotor(3, 0)
     moveMotor(7, 0)
 
-    moveMotor(5, 25)
+    moveMotor(5, 15)
     moveMotor(1, 0)
     moveMotor(5, 0)
 
-    moveMotor(8, 25)
+    moveMotor(8, 15)
     moveMotor(4, 0)
     moveMotor(8, 0)
 
 def switch(state = "x"):
-    
 
     if state == "x":
         targets = [0] * 8
