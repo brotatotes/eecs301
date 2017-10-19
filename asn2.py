@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import time
 from asnfuncs import *
-from map import *
 
 # roscore
 # rosrun fw_wrapper srv_wrapper

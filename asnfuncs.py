@@ -311,6 +311,40 @@ def switch(state = "x"):
 def stopDrive():
     setWheelSpeedSync(4, range(11,15), [0] * 4)
 
+##################################### Map Handling ######################################
+
+def findPath(eecsmap, start, target):
+    xSize, ySize = eecsmap.getCostmapSize(True), eecsmap.getCostmapSize(False)
+    xRange, yRange = range(xSize), range(ySize)
+
+    if not (start[0] in xRange and start[1] in yRange):
+        raise Exception("target postion out of range.")
+
+    if not (target[0] in xRange and target[1] in yRange):
+        raise Exception("target postion out of range.")
+
+    eecsmap.buildCostMap(target)
+
+    path = []
+    curr = start
+    while curr != target:
+        nexts = []
+        for direc in range(1,5):
+            potential = eecsmap.getNeighborCoord(curr[0], curr[1], direc)
+            if eecsmap.inRange(potential[0], potential[1]) and eecsmap.getNeighborObstacle(curr[0], curr[1], direc) == 0:
+                nexts.append((potential, direc))
+        best = min(nexts, key=lambda n: eecsmap.getCost(n[0][0], n[0][1]))
+        # best should never be worse than curr
+        path.append(best[1])
+        curr = best[0]
+
+    return path
+
+from map import *
+m = EECSMap()
+print(findPath(m, (0,0), (7,6)))
+m.printCostMap()
+
 #################################### Sensor Handling #####################################
 def get_sensor_consts(sensor):
     if sensor == 1:
