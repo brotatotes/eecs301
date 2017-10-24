@@ -2,6 +2,7 @@
 import time
 from asnfuncs import *
 from map import *
+import matplotlib.pyplot as plt
 
 # roscore
 # rosrun fw_wrapper srv_wrapper
@@ -135,13 +136,26 @@ if __name__ == "__main__":
             xToY()
 
     elif selection == "3":
+        temp=[]
+        setMotorTargetSpeed(9,1023)
+        setMotorTargetPositionCommand(9,400)
+        time.sleep(2)
+        for i in [412,512, 613]:
+            setMotorTargetPositionCommand(9,i)
+            time.sleep(1)
+            temp.append((getMotorPositionCommand(9), getSensorValue(DMS)))
+            time.sleep(1)
 
-        setMotorTargetSpeed(9,1000)
-        setMotorTargetPositionCommand(9,0)
-        setMotorTargetPositionCommand(9,1023)
+        # setMotorTargetPositionCommand(9,1023)
+        # time.sleep(0.1)
+        # temp.append((getMotorPositionCommand(9), getSensorValue(DMS)))
+
+        for t in temp:
+            print t
         
 
-        
+        plt.scatter([t[0] for t in temp], [t[1] for t in temp])
+        plt.show()
 
 
 
