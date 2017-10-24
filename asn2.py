@@ -36,6 +36,7 @@ if __name__ == "__main__":
     print("0. asn2")
     print("1. capture mode")
     print("2. check sensors")
+    print("3. testing mode")
 
     selection = raw_input(">>> ")
 
@@ -98,12 +99,24 @@ if __name__ == "__main__":
 
         end = (x,y)
 
-        m EECSMap()
+        m = EECSMap()
         print("Setup done!")
         
         
         raw_input("Ready to go? ")
         STATE = findAndDrivePath(m, (0,6), (1,6), STATE)
+
+    elif selection == "3":
+
+        setMotorTargetSpeed(9,1000)
+        setMotorTargetPositionCommand(9,0)
+        setMotorTargetPositionCommand(9,1023)
+        
+
+        
+
+
+
 
     else:
         print("Invalid selection '" + selection + "' Quiting...")
