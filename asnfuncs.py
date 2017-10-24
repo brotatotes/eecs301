@@ -322,6 +322,11 @@ def stopDrive():
     setWheelSpeedSync(4, range(11,15), [0] * 4)
 
 ##################################### Map Handling ######################################
+def newMap():
+    m = EECSMap()
+    m.clearObstacleMap()
+    return m
+
 def findAndDrivePath(m, start, target, state):
     paths = findPath(m, start, target)
     m.printObstacleMap()
