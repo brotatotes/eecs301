@@ -22,7 +22,7 @@ if __name__ == "__main__":
     # Sensor setup
     IR1 = 2 # left
     IR2 = 3 # right
-    DMS = 1 # front
+    DMS = 3 # front
     SENSORS = (IR1, IR2, DMS)
 
     # IR 1 is port 1
