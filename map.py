@@ -308,7 +308,6 @@ class EECSMap():
             if (j < 7):
                 self.costMap[i][j+1] = val
 
-
     # ******************************************************************************
     # Function Name  : setCost
     # Description    : Used for map building, sets the calculated cost of a given map cell
@@ -444,43 +443,6 @@ class EECSMap():
     # *****************************************************************************/
     def getObstacleMapSize(self, xDim):
         if xDim:
-            return self.obstacle_size_x 
+            return self.obstacle_size_x
         else:
             return self.obstacle_size_y
-
-    def getNeighborCoord(self, i, j, dir):
-        if dir == DIRECTION.North:
-            return (i-1,j)
-        elif dir == DIRECTION.South:
-            return (i+1,j)
-        elif dir == DIRECTION.West:
-            return (i, j-1)
-        elif dir == DIRECTION.East:
-            return (i, j+1)
-
-        raise Exception("Invalid direction given.")
-
-    def inRange(self, i, j):
-        return (i >= 0 and i <= 7 and j >= 0 and j <= 7)
-
-    def buildCostMap(self, target):
-        xSize, ySize = self.getCostmapSize(True), self.getCostmapSize(False)
-        xRange, yRange = range(xSize), range(ySize)
-
-        if not (target[0] in xRange and target[1] in yRange):
-            raise Exception("target postion out of range.")
-
-        self.clearCostMap(float("inf"))
-
-        # initialize target cost to 0.
-        self.setCost(target[0], target[1], 0)
-        visited = set([(target[0], target[1])])
-        queue = [target]
-        while queue:
-            tile = queue.pop(0)
-            for direc in range(1,5):
-                newTile = self.getNeighborCoord(tile[0], tile[1], direc)
-                if self.inRange(newTile[0], newTile[1]) and not newTile in visited and self.getNeighborObstacle(tile[0], tile[1], direc) == 0:
-                    self.setNeighborCost(tile[0], tile[1], direc, min(self.getCost(tile[0], tile[1]) + 1, self.getNeighborCost(tile[0], tile[1], direc)))
-                    queue.append(newTile)
-                    visited.add((tile[0], tile[1]))
