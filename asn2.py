@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import time
 from asnfuncs import *
+from map import *
 
 # roscore
 # rosrun fw_wrapper srv_wrapper
@@ -64,10 +65,6 @@ if __name__ == "__main__":
     elif selection == "0" or selection == "":
         # setup
 
-        print("Creating map...")
-        MAP = EECSMap()
-        MAP.printObstacleMap()
-
         switch('x')
         STATE = 'X'
 
@@ -79,14 +76,21 @@ if __name__ == "__main__":
 
 
 
+    
+
+    m = EECSMap()
+    # paths = findPath(m, (0,6), (1,6))
+    # paths = findPath(m, (0,6), (3,5))
+    paths = findPath(m, (0,6), (7,7))
+    m.printObstacleMap()
+    m.printCostMap()
+    print(paths)
+    raw_input("drive? ")
     start = time.time()
+    drivePath(paths, STATE)
 
+    print((time.time() - start))
 
-    STATE = drive('e', STATE)
-    STATE = drive('e', STATE)
-    STATE = drive('e', STATE)
-    STATE = drive('e', STATE)
-    # STATE = drive('e', STATE)
     # STATE = drive('s', STATE)
     # STATE = drive('e', STATE)
     # STATE = drive('s', STATE)

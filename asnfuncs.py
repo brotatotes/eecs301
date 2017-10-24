@@ -216,33 +216,39 @@ def drive(direction, state):
             state = 'Y'
         speeds = [1023, 2047, 1023, 2047]
         setWheelSpeedSync(4, range(11,15), speeds)
-        time.sleep(1.9)
+        time.sleep(1.7)
     elif d == "s":
         if state == 'X':
             xToY()
             state = 'Y'
         speeds = [2047, 1023, 2047, 1023]
         setWheelSpeedSync(4, range(11,15), speeds)
-        time.sleep(1.9)
+        time.sleep(1.7)
     elif d == "w":
         if state == 'Y':
             yToX()
             state = 'X'
         speeds = [1023, 1023, 2047, 2047]
         setWheelSpeedSync(4, range(11,15), speeds)
-        time.sleep(1.95)
+        time.sleep(1.8)
     elif d == "e":
         if state == 'Y':
             yToX()
             state = 'X'
         speeds = [2047, 2047, 1023, 1023]
         setWheelSpeedSync(4, range(11,15), speeds)
-        time.sleep(1.95)
+        time.sleep(1.8)
 
 
     stopDrive()
 
     return state
+
+def drivePath(path, state):
+    mapping = ['', 'n', 'e', 's', 'w']
+    for p in path:
+        state = drive(mapping[p], state)
+
 
 def wheelTurn():
     speeds = [1023] * 4
@@ -343,11 +349,6 @@ def findPath(eecsmap, start, target):
         curr = best[0]
 
     return path
-
-from map import *
-m = EECSMap()
-print(findPath(m, (0,0), (7,6)))
-m.printCostMap()
 
 #################################### Sensor Handling #####################################
 def get_sensor_consts(sensor):

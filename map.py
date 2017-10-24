@@ -444,7 +444,7 @@ class EECSMap():
     # *****************************************************************************/
     def getObstacleMapSize(self, xDim):
         if xDim:
-            return self.obstacle_size_x
+            return self.obstacle_size_x 
         else:
             return self.obstacle_size_y
 
@@ -484,10 +484,3 @@ class EECSMap():
                     self.setNeighborCost(tile[0], tile[1], direc, min(self.getCost(tile[0], tile[1]) + 1, self.getNeighborCost(tile[0], tile[1], direc)))
                     queue.append(newTile)
                     visited.add((tile[0], tile[1]))
-
-
-# m = EECSMap()
-# m.printObstacleMap()
-# m.buildCostMap((7,6))
-# m.printObstacleMap()
-# m.printCostMap()
