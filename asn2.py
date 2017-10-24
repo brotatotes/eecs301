@@ -76,20 +76,9 @@ if __name__ == "__main__":
 
 
 
-    
 
     m = EECSMap()
-    # paths = findPath(m, (0,6), (1,6))
-    # paths = findPath(m, (0,6), (3,5))
-    paths = findPath(m, (0,6), (7,7))
-    m.printObstacleMap()
-    m.printCostMap()
-    print(paths)
-    raw_input("drive? ")
-    start = time.time()
-    drivePath(paths, STATE)
-
-    print((time.time() - start))
+    STATE = findAndDrivePath(m, (0,0), (7,7), STATE)
 
     # STATE = drive('s', STATE)
     # STATE = drive('e', STATE)

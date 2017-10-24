@@ -208,7 +208,7 @@ def engageMotors():
 def drive(direction, state):
     # we don't know what 0 direction means yet
     for i in range(11,15):
-        setMotorMode(i, 1)   
+        setMotorMode(i, 1)
     d = direction.lower()
     if d == "n":
         if state == 'X':
@@ -322,6 +322,22 @@ def stopDrive():
     setWheelSpeedSync(4, range(11,15), [0] * 4)
 
 ##################################### Map Handling ######################################
+def newMap():
+    m = EECSMap()
+    m.clearObstacleMap()
+    return m
+
+def findAndDrivePath(m, start, target, state):
+    paths = findPath(m, start, target)
+    m.printObstacleMap()
+    m.printCostMap()
+    print("Generated paths:", paths)
+    # raw_input("drive? ")
+    # start = time.time()
+    state = drivePath(paths, state)
+    return state
+
+    # print((time.time() - start))
 
 def findPath(eecsmap, start, target):
     xSize, ySize = eecsmap.getCostmapSize(True), eecsmap.getCostmapSize(False)
