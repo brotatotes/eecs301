@@ -348,10 +348,10 @@ class EECSMap():
     # Output         : None
     # Return         : None
     # *****************************************************************************/
-    def clearCostMap(self, val=0):
+    def clearCostMap(self):
         for i in xrange(8):
             for j in xrange(8):
-                self.costMap[i][j] = val
+                self.costMap[i][j] = 0
 
     # ******************************************************************************
     # Function Name  : clearObstacleMap

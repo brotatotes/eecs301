@@ -216,28 +216,28 @@ def drive(direction, state):
             state = 'Y'
         speeds = [1023, 2047, 1023, 2047]
         setWheelSpeedSync(4, range(11,15), speeds)
-        time.sleep(1.7)
+        time.sleep(1.728)
     elif d == "s":
         if state == 'X':
             xToY()
             state = 'Y'
         speeds = [2047, 1023, 2047, 1023]
         setWheelSpeedSync(4, range(11,15), speeds)
-        time.sleep(1.7)
+        time.sleep(1.69)
     elif d == "w":
         if state == 'Y':
             yToX()
             state = 'X'
         speeds = [1023, 1023, 2047, 2047]
         setWheelSpeedSync(4, range(11,15), speeds)
-        time.sleep(1.8)
+        time.sleep(1.73)
     elif d == "e":
         if state == 'Y':
             yToX()
             state = 'X'
         speeds = [2047, 2047, 1023, 1023]
         setWheelSpeedSync(4, range(11,15), speeds)
-        time.sleep(1.8)
+        time.sleep(1.7)
 
 
     stopDrive()
@@ -301,9 +301,9 @@ def yToX():
     moveMotor(4, 0)
     moveMotor(8, 0)
 
-def switch(state = "x"):
+def switch(state = "X"):
 
-    if state == "x":
+    if state == "X":
         targets = [0,-2,-2,0]+[0] * 4
     else:
         targets = [-90, 90, 90, -90] + [0] *4

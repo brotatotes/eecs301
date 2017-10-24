@@ -25,7 +25,7 @@ if __name__ == "__main__":
     DMS = 3 # front
     SENSORS = (IR1, IR2, DMS)
 
-    # IR 1 is port 1
+    # IR 1 is port 19,
     # IR 2 is port 2
 
     # control loop running at X Hz
@@ -64,11 +64,46 @@ if __name__ == "__main__":
 
     elif selection == "0" or selection == "":
         # setup
+        heading = input("Select heading:\n1. North\n2. East\n3. South\n4. West\n(Select 1-4): ")
+        if not heading in [1,2,3,4]:
+            print("Failed. Please input a number 1 - 4")
+            print("Quitting...")
+            sys.exit()
 
-        switch('x')
-        STATE = 'X'
+        elif heading in [1,3]:
+            s = 'Y'
+        else:
+            s = 'X'
 
-        raw_input("loop? ")
+        switch(s)
+        STATE = s
+
+        print("Enter start coordinates (0-7):")
+        x = input("Enter i coordinate: ")
+        y = input("Enter j coordinate: ")
+        if x < 0 or x > 7 or y < 0 or y > 7:
+            print("Coordinates out of range.")
+            print("Quitting...")
+            sys.exit()
+
+        start = (x,y)
+
+        print("Enter end coordinates (0-7):")
+        x = input("Enter i coordinate: ")
+        y = input("Enter j coordinate: ")
+        if x < 0 or x > 7 or y < 0 or y > 7:
+            print("Coordinates out of range.")
+            print("Quitting...")
+            sys.exit()
+
+        end = (x,y)
+
+        m EECSMap()
+        print("Setup done!")
+        
+        
+        raw_input("Ready to go? ")
+        STATE = findAndDrivePath(m, (0,6), (1,6), STATE)
 
     else:
         print("Invalid selection '" + selection + "' Quiting...")
@@ -78,12 +113,14 @@ if __name__ == "__main__":
 
 
     m = EECSMap()
-    STATE = findAndDrivePath(m, (0,0), (7,7), STATE)
-
+    
     # STATE = drive('s', STATE)
-    # STATE = drive('e', STATE)
+    # STATE = drive('s', STATE)
+    # STATE = drive('s', STATE)
     # STATE = drive('s', STATE)
 
+    # setMotorMode(9,0)
+    # setMotorTargetPositionCommand(9,0)
 
     # while not rospy.is_shutdown():
 
