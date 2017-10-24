@@ -65,13 +65,14 @@ if __name__ == "__main__":
 
     elif selection == "0" or selection == "":
         # setup
-        heading = input("Select heading:\n1. North\n2. East\n3. South\n4. West\n(Select 1-4): ")
-        if not heading in [1,2,3,4]:
-            print("Failed. Please input a number 1 - 4")
-            print("Quitting...")
+        starth = input("Select start heading:\n1. North\n2. East\n3. South\n4. West\n(Select 1-4): ")
+        print "You selected", starth
+        if not starth in [1,2,3,4]:
+            print "Failed. Please input a number 1 - 4"
+            print "Quitting..."
             sys.exit()
 
-        elif heading in [1,3]:
+        elif starth in [1,3]:
             s = 'Y'
         else:
             s = 'X'
@@ -79,32 +80,59 @@ if __name__ == "__main__":
         switch(s)
         STATE = s
 
-        print("Enter start coordinates (0-7):")
+        endh = input("Select end heading:\n1. North\n2. East\n3. South\n4. West\n(Select 1-4): ")
+        print "You selected", endh
+        if not endh in [1,2,3,4]:
+            print "Failed. Please input a number 1 - 4"
+            print "Quitting..."
+            sys.exit()
+
+        elif starth in [1,3]:
+            e = 'Y'
+        else:
+            e = 'X'
+
+        print "Enter start coordinates (0-7):"
         x = input("Enter i coordinate: ")
+        print "You selected", x        
         y = input("Enter j coordinate: ")
+        print "You selected", y
+
+        print "start position = (" + str(x) + ", " + str(y) + ")\n"
+
         if x < 0 or x > 7 or y < 0 or y > 7:
-            print("Coordinates out of range.")
-            print("Quitting...")
+            print "Coordinates out of range."
+            print "Quitting..."
             sys.exit()
 
         start = (x,y)
 
-        print("Enter end coordinates (0-7):")
+        print "Enter end coordinates (0-7):"
         x = input("Enter i coordinate: ")
+        print "You selected", x
         y = input("Enter j coordinate: ")
+        print "You selected", y
+
+        print "end position = (" + str(x) + ", " + str(y) + ")\n"
+
         if x < 0 or x > 7 or y < 0 or y > 7:
-            print("Coordinates out of range.")
-            print("Quitting...")
+            print "Coordinates out of range."
+            print "Quitting..."
             sys.exit()
 
         end = (x,y)
 
         m = EECSMap()
-        print("Setup done!")
+        print "Setup done!"
         
         
         raw_input("Ready to go? ")
-        STATE = findAndDrivePath(m, (0,6), (1,6), STATE)
+        STATE = findAndDrivePath(m, start, end, STATE)
+        
+        if e == 'X':
+            yToX()
+        else:
+            xToY()
 
     elif selection == "3":
 

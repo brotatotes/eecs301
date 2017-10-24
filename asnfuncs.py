@@ -389,15 +389,15 @@ def findPath(eecsmap, start, target):
     if not (target[0] in xRange and target[1] in yRange):
         raise Exception("target postion out of range.")
 
-    eecsmap.buildCostMap(target)
+    buildCostMap(eecsmap, target)
 
     path = []
     curr = start
     while curr != target:
         nexts = []
         for direc in range(1,5):
-            potential = eecsmap.getNeighborCoord(curr[0], curr[1], direc)
-            if eecsmap.inRange(potential[0], potential[1]) and eecsmap.getNeighborObstacle(curr[0], curr[1], direc) == 0:
+            potential = getNeighborCoord(curr[0], curr[1], direc)
+            if inRange(potential[0], potential[1]) and eecsmap.getNeighborObstacle(curr[0], curr[1], direc) == 0:
                 nexts.append((potential, direc))
         best = min(nexts, key=lambda n: eecsmap.getCost(n[0][0], n[0][1]))
         # best should never be worse than curr
