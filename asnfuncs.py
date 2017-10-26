@@ -406,6 +406,82 @@ def findPath(eecsmap, start, target):
 
     return path
 
+def updateWalls(eecsmap, walls):
+    if walls["north"]:
+        eecsmap.setObstacle(start[0], start[1], Direction.North)
+
+    if walls["south"]:
+        eecsmap.setObstacle(start[0], start[1], Direction.South)
+
+    if walls["west"]:
+        eecsmap.setObstacle(start[0], start[1], Direction.West)
+
+    if walls["east"]:
+        eecsmap.setObstacle(start[0], start[1], Direction.East)
+
+
+def wander(sensors, state, start = (0,0)):
+    m = EECSMap()
+    m.clearObstacleMap()
+    m.clearCostMap()
+
+    curr = start
+
+    visited = set(start)
+
+    targets = set()
+
+    # initialize targets
+    for direc in range(1,5):
+        potential = getNeighborCoord(start[0], start[1], direc)
+        if inRange(start[0], start[1]):
+            targets.add(potential)    
+
+    while targets:
+
+        
+
+        # find closest
+        best_cost = float("inf")
+        best_target = None
+
+        # grab all from targets 
+        for t in targets:
+            buildCostMap(m, t)
+            cost = m.getCost(start[0], start[1])
+            if cost > best_cost:
+                best_cost = cost
+                best_target = t
+
+        if not best_target:
+            return
+
+        # go to closest
+        if curr != start:
+            path = findPath(m, start, best_target)
+            state = drive(path, state)
+
+        # update curr
+        curr = best_target
+       
+
+        # remove that from targets
+
+
+        
+
+        # update targets
+
+        # update visited
+
+        # sweep, update walls
+        walls = detectWalls(sensors)
+        updateWalls(m, walls)
+
+
+
+
+
 #################################### Sensor Handling #####################################
 def get_sensor_consts(sensor):
     if sensor == 1:
@@ -458,27 +534,63 @@ def viewSensors(sensors):
     print "IR1: %d adc\nIR2: %d adc\nDMS: %d adc" % (adc[0], adc[1], adc[2])
     print "IR1: %.2fcm\nIR2: %.2fcm\nDMS: %.2fcm\n" % (vals[0], vals[1], vals[2])
 
-def detectObstacles(vals):
-    left = tooclose(vals[0], 23)
-    right = tooclose(vals[1], 23)
-    front = tooclose(vals[2], 23)
+def sweepSensors(sensors):
+    """
+    assumes sensors are the ports [IR1, IR2, DMS]
+    """
+    ir1, ir2, dms = sensors
 
-    if not front:
-        return "F"
-    else:
-        if left and right:
-            return "180"
-        elif left:
-            return "R90"
+    res = 40
+
+    irdata = {}
+    dmsdata = {}
+
+    setMotorTargetSpeed(9,1023)
+    setMotorTargetPositionCommand(9,0)
+    time.sleep(1)
+
+    for i in range(0, 1024, res):
+        setMotorTargetPositionCommand(9,i)
+
+        deg = int(adc_to_deg(1, getMotorPositionCommand(9)))
+        dmsdata[deg] = adc_to_cm(0, getSensorValue(dms))
+
+        ir = min(adc_to_cm(1, getSensorValue(ir1)), 60)
+        if deg > 0:
+            deg -= 170
         else:
-            return "L90"
+            deg += 190
 
-def tooclose(val, threshold):
-    return all(map(lambda x: x <= threshold, val))
+            if deg > 180:
+                deg = deg - 360
 
-def toofar(val, threshold):
-    return all(map(lambda x: x >= threshold, val))
+        irdata[deg] = ir
+    
+    # average ir and deg
+    avg = {}
+    for k in (set(irdata.keys()) | set(dmsdata.keys())):
+        if not k in irdata:
+            avg[k] = dmsdata[k]
+        elif not k in dmsdata:
+            avg[k] = irdata[k]
+        else:
+            avg[k] = (dmsdata[k] + irdata[k]) / 2.0
 
+    return avg
+
+def detectWalls(sensors):
+    avgs = sweepSensors(sensors)
+    threshold = 40
+
+    getVals = lambda start, end: [avgs[deg] for deg in range(start,end+1) if deg in avgs]
+    north = getVals(-180, -165) + getVals(165, 180)
+    south = getVals(-15, 15)    
+    east = getVals(75, 105)
+    west = getVals (-105, -75)
+
+    return {"north": sum(north) / len(north) < threshold, "south": sum(south) / len(south) < threshold, "east": sum(east) / len(east) < threshold, "west": sum(west) / len(west) < threshold}
+
+    
 
 #################################### State Management ####################################
 

@@ -21,7 +21,7 @@ if __name__ == "__main__":
     stopDrive()
 
     # Sensor setup
-    IR1 = 2 # left
+    IR1 = 4 # left
     IR2 = 3 # right
     DMS = 3 # front
     SENSORS = (IR1, IR2, DMS)
@@ -88,7 +88,7 @@ if __name__ == "__main__":
             print "Quitting..."
             sys.exit()
 
-        elif starth in [1,3]:
+        elif endh in [1,3]:
             e = 'Y'
         else:
             e = 'X'
@@ -136,27 +136,33 @@ if __name__ == "__main__":
             xToY()
 
     elif selection == "3":
-        temp=[]
-        setMotorTargetSpeed(9,1023)
-        setMotorTargetPositionCommand(9,400)
-        time.sleep(2)
-        for i in [412,512, 613]:
-            setMotorTargetPositionCommand(9,i)
-            time.sleep(1)
-            temp.append((getMotorPositionCommand(9), getSensorValue(DMS)))
-            time.sleep(1)
+        # temp=[]
+        # setMotorTargetSpeed(9,1023)
+        # setMotorTargetPositionCommand(9,400)
+        # time.sleep(2)
+        # for i in range(0,1024,20):
+        #     setMotorTargetPositionCommand(9,i)
+        #     # time.sleep(1)
+        #     temp.append((getMotorPositionCommand(9), getSensorValue(DMS), getSensorValue(IR1)))
+        #     # time.sleep(1)
 
-        # setMotorTargetPositionCommand(9,1023)
-        # time.sleep(0.1)
-        # temp.append((getMotorPositionCommand(9), getSensorValue(DMS)))
+        # # setMotorTargetPositionCommand(9,1023)
+        # # time.sleep(0.1)
+        # # temp.append((getMotorPositionCommand(9), getSensorValue(DMS)))
 
-        for t in temp:
-            print t
+        # for t in temp:
+        #     print t
         
 
-        plt.scatter([t[0] for t in temp], [t[1] for t in temp])
-        plt.show()
+        # plt.scatter([adc_to_deg(1,t[0]) for t in temp], [adc_to_cm(0, t[1]) for t in temp], c='b', label='dms')
+        # plt.scatter([adc_to_deg(1,t[0]) - 170 if adc_to_deg(1,t[0]) > 0 else adc_to_deg(1,t[0]) + 190 for t in temp], [adc_to_cm(1, t[2]) for t in temp], c='r', label='ir1')
 
+        avgs = sweepSensors(SENSORS)
+        plt.scatter(avgs.keys(), avgs.values())
+        plt.show()
+        # while True:
+        #     viewSensors(SENSORS)
+        print(detectWalls(avgs))
 
 
 
