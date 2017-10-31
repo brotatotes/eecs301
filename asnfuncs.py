@@ -249,6 +249,8 @@ def drivePath(path, state):
     for p in path:
         state = drive(mapping[p], state)
 
+    return state
+
 
 def wheelTurn():
     speeds = [1023] * 4
@@ -338,6 +340,7 @@ def inRange(i, j):
     return (i >= 0 and i <= 7 and j >= 0 and j <= 7)
 
 def buildCostMap(m, target):
+    m.clearCostMap()
     xSize, ySize = m.getCostmapSize(True), m.getCostmapSize(False)
     xRange, yRange = range(xSize), range(ySize)
 
@@ -362,11 +365,6 @@ def buildCostMap(m, target):
                 queue.append(newTile)
                 visited.add((tile[0], tile[1]))
 
-def newMap():
-    m = EECSMap()
-    m.clearObstacleMap()
-    return m
-
 def findAndDrivePath(m, start, target, state):
     paths = findPath(m, start, target)
     m.printObstacleMap()
@@ -374,6 +372,7 @@ def findAndDrivePath(m, start, target, state):
     print("Generated paths:", paths)
     # raw_input("drive? ")
     # start = time.time()
+    print ("state: ", state)
     state = drivePath(paths, state)
     return state
 
@@ -406,18 +405,11 @@ def findPath(eecsmap, start, target):
 
     return path
 
-def updateWalls(eecsmap, walls):
-    if walls["north"]:
-        eecsmap.setObstacle(start[0], start[1], Direction.North)
-
-    if walls["south"]:
-        eecsmap.setObstacle(start[0], start[1], Direction.South)
-
-    if walls["west"]:
-        eecsmap.setObstacle(start[0], start[1], Direction.West)
-
-    if walls["east"]:
-        eecsmap.setObstacle(start[0], start[1], Direction.East)
+def updateWalls(eecsmap, walls, curr):
+    eecsmap.setObstacle(curr[0], curr[1], 1 if walls["north"] else 0, DIRECTION.North)
+    eecsmap.setObstacle(curr[0], curr[1], 1 if walls["south"] else 0, DIRECTION.South)
+    eecsmap.setObstacle(curr[0], curr[1], 1 if walls["west"] else 0, DIRECTION.West)
+    eecsmap.setObstacle(curr[0], curr[1], 1 if walls["east"] else 0, DIRECTION.East)
 
 
 def wander(sensors, state, start = (0,0)):
@@ -427,59 +419,70 @@ def wander(sensors, state, start = (0,0)):
 
     curr = start
 
-    visited = set(start)
-
     targets = set()
 
     # update walls
     walls = detectWalls(sensors)
-    updateWalls(m, walls)
+    updateWalls(m, walls, curr)
 
     # initialize targets
     for direc in range(1,5):
         potential = getNeighborCoord(start[0], start[1], direc)
-        if inRange(potential[0], potential[1]) and eecsmap.getNeighborObstacle(start[0], start[1], direc) == 0:
+        if inRange(potential[0], potential[1]) and m.getNeighborObstacle(start[0], start[1], direc) == 0:
             targets.add(potential)
 
+    print("start", start)
+    visited = set([start])
+
+    m.printObstacleMap()
+    m.printCostMap()
+    print("targets", targets)
+    print("visited", visited)
+
     while targets:
+        
+
         # find closest
         best_cost = float("inf")
         best_target = None
 
-        # grab all from targets
-        for t in targets:
-            buildCostMap(m, t)
-            cost = m.getCost(start[0], start[1])
-            if cost > best_cost:
-                best_cost = cost
-                best_target = t
+        # find best targets with individual cost map
+        buildCostMap(m,curr)
+        costs = [(m.getCost(t[0], t[1]), t) for t in targets]
+        # TODO tie break targets
+        best_target = min(costs, key=lambda x: x[0])[1]
+        buildCostMap(m, best_target)
 
-        if not best_target:
-            return
+        print("curr", curr)
+        print("targets", targets)
+        print("best_target", best_target)
+        print("visited", visited)
 
         # go to closest
-        if curr != start:
-            path = findPath(m, start, best_target)
-            state = drive(path, state)
+        state=findAndDrivePath(m,curr,best_target,state)
+
 
         # update curr
         curr = best_target
 
         # remove that from targets
-        targets.remove(curr)
+        targets.remove(best_target)
 
         # sweep, update walls
         walls = detectWalls(sensors)
-        updateWalls(m, walls)
+        updateWalls(m, walls, curr)
 
         # update targets
         for direc in range(1,5):
             potential = getNeighborCoord(curr[0], curr[1], direc)
-            if inRange(potential[0], potential[1]) and eecsmap.getNeighborObstacle(start[0], start[1], direc) == 0:
+            if inRange(potential[0], potential[1]) and m.getNeighborObstacle(curr[0], curr[1], direc) == 0 and not potential in visited:
                 targets.add(potential)
 
         # update visited
         visited.add(curr)
+
+
+    return state
 
 
 
@@ -584,7 +587,7 @@ def sweepSensors(sensors):
 
 def detectWalls(sensors):
     avgs = sweepSensors(sensors)
-    threshold = 40
+    threshold = 35
 
     getVals = lambda start, end: [avgs[deg] for deg in range(start,end+1) if deg in avgs]
     north = getVals(-180, -165) + getVals(165, 180)
@@ -599,6 +602,7 @@ def detectWalls(sensors):
 #################################### State Management ####################################
 
 def go_to_default():
+
     go_to_state("default")
 
 
@@ -700,3 +704,53 @@ def straferight(cycles = 1):
     states = pickle.load( open("states.p", "rb"))
     b = [states["straferight1"], states["straferight2"]] * cycles
     doBehavior(b)
+
+def correction(direction,state):
+    for i in range(11,15):
+        setMotorMode(i, 1)
+    d = direction.lower()
+    if d == "n":
+        if state == 'X':
+            xToY()
+            state = 'Y'
+        speeds = [1023, 2047, 1023, 2047]
+        setWheelSpeedSync(4, range(11,15), speeds)
+        time.sleep(0.6)
+        speeds = [2047, 1023, 2047, 1023]
+        setWheelSpeedSync(4, range(11,15), speeds)
+        time.sleep(0.061)
+    elif d == "s":
+        if state == 'X':
+            xToY()
+            state = 'Y'
+        speeds = [2047, 1023, 2047, 1023]
+        setWheelSpeedSync(4, range(11,15), speeds)
+        time.sleep(0.6)
+        speeds = [1023, 2047, 1023, 2047]
+        setWheelSpeedSync(4, range(11,15), speeds)
+        time.sleep(0.061)
+    elif d == "w":
+        if state == 'Y':
+            yToX()
+            state = 'X'
+        speeds = [1023, 1023, 2047, 2047]
+        setWheelSpeedSync(4, range(11,15), speeds)
+        time.sleep(0.6)
+        speeds = [2047, 2047, 1023, 1023]
+        setWheelSpeedSync(4, range(11,15), speeds)
+        time.sleep(0.051)
+    elif d == "e":
+        if state == 'Y':
+            yToX()
+            state = 'X'
+        speeds = [2047, 2047, 1023, 1023]
+        setWheelSpeedSync(4, range(11,15), speeds)
+        time.sleep(0.6)
+        speeds = [1023, 1023, 2047, 2047]
+        setWheelSpeedSync(4, range(11,15), speeds)
+        time.sleep(0.071)
+
+
+    stopDrive()
+
+
