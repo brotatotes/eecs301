@@ -431,21 +431,22 @@ def wander(sensors, state, start = (0,0)):
 
     targets = set()
 
+    # update walls
+    walls = detectWalls(sensors)
+    updateWalls(m, walls)
+
     # initialize targets
     for direc in range(1,5):
         potential = getNeighborCoord(start[0], start[1], direc)
-        if inRange(start[0], start[1]):
-            targets.add(potential)    
+        if inRange(potential[0], potential[1]) and eecsmap.getNeighborObstacle(start[0], start[1], direc) == 0:
+            targets.add(potential)
 
     while targets:
-
-        
-
         # find closest
         best_cost = float("inf")
         best_target = None
 
-        # grab all from targets 
+        # grab all from targets
         for t in targets:
             buildCostMap(m, t)
             cost = m.getCost(start[0], start[1])
@@ -463,20 +464,23 @@ def wander(sensors, state, start = (0,0)):
 
         # update curr
         curr = best_target
-       
 
         # remove that from targets
-
-
-        
-
-        # update targets
-
-        # update visited
+        targets.remove(curr)
 
         # sweep, update walls
         walls = detectWalls(sensors)
         updateWalls(m, walls)
+
+        # update targets
+        for direc in range(1,5):
+            potential = getNeighborCoord(curr[0], curr[1], direc)
+            if inRange(potential[0], potential[1]) and eecsmap.getNeighborObstacle(start[0], start[1], direc) == 0:
+                targets.add(potential)
+
+        # update visited
+        visited.add(curr)
+
 
 
 
@@ -565,7 +569,7 @@ def sweepSensors(sensors):
                 deg = deg - 360
 
         irdata[deg] = ir
-    
+
     # average ir and deg
     avg = {}
     for k in (set(irdata.keys()) | set(dmsdata.keys())):
@@ -584,13 +588,13 @@ def detectWalls(sensors):
 
     getVals = lambda start, end: [avgs[deg] for deg in range(start,end+1) if deg in avgs]
     north = getVals(-180, -165) + getVals(165, 180)
-    south = getVals(-15, 15)    
+    south = getVals(-15, 15)
     east = getVals(75, 105)
     west = getVals (-105, -75)
 
     return {"north": sum(north) / len(north) < threshold, "south": sum(south) / len(south) < threshold, "east": sum(east) / len(east) < threshold, "west": sum(west) / len(west) < threshold}
 
-    
+
 
 #################################### State Management ####################################
 
