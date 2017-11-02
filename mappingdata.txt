@@ -1,0 +1,7 @@
+time: 249.68s
+wall hits: 22
+portion: 24 tiles
+
+time: ??s
+wall hits: 44
+portion: 54 tiles
