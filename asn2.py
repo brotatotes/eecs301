@@ -195,18 +195,18 @@ if __name__ == "__main__":
             print "Quitting..."
             sys.exit()
 
+        raw_input("Ready to go? ")
+
         start = (x,y)
-        STATE=wander(SENSORS,STATE, start)
+        STATE = wander(SENSORS,STATE, start)
 
     elif selection == "5":
-        xToY()
-        correction("s",'Y')
-        yToX()
-        correction("w",'X')
-        xToY()
-        correction("s",'Y')
-        yToX()
-        correction("w",'X')
+        state = 'X'
+        switch(state)
+        drive('w', state)
+        drive('w', state)
+        drive('w', state)
+        drive('w', state)
 
                 
 

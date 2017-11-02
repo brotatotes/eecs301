@@ -159,11 +159,11 @@ def moveMotor(motor_id, deg):
         else:
             d = min(adc, r[0])
 
-    print("Attempting to move from", current_pos, "to", d, "within", r)
+    # print "Attempting to move from", current_pos, "to", d, "within", r
 
     return setMotorTargetPositionCommand(motor_id, d)
 
-    print("Motor move completed.")
+    # print "Motor move completed."
 
 def deg_to_adc(motor_id, deg):
     if motor_id in (5,8):
@@ -216,33 +216,34 @@ def drive(direction, state):
             state = 'Y'
         speeds = [1023, 2047, 1023, 2047]
         setWheelSpeedSync(4, range(11,15), speeds)
-        time.sleep(1.728)
+        time.sleep(1.69)
     elif d == "s":
         if state == 'X':
             xToY()
             state = 'Y'
         speeds = [2047, 1023, 2047, 1023]
         setWheelSpeedSync(4, range(11,15), speeds)
-        time.sleep(1.69)
+        time.sleep(1.65)
     elif d == "w":
         if state == 'Y':
             yToX()
             state = 'X'
         speeds = [1023, 1023, 2047, 2047]
         setWheelSpeedSync(4, range(11,15), speeds)
-        time.sleep(1.73)
+        time.sleep(1.66)
     elif d == "e":
         if state == 'Y':
             yToX()
             state = 'X'
         speeds = [2047, 2047, 1023, 1023]
         setWheelSpeedSync(4, range(11,15), speeds)
-        time.sleep(1.7)
+        time.sleep(1.68)
 
 
     stopDrive()
 
     return state
+
 
 def drivePath(path, state):
     mapping = ['', 'n', 'e', 's', 'w']
@@ -266,17 +267,17 @@ def xToY():
 
     # raw_input()
     moveMotor(7, 15)
-    moveMotor(3, 90)
+    moveMotor(3, 92)
     moveMotor(7, 0)
 
     # raw_input()
     moveMotor(6, 15)
-    moveMotor(2, 90)
+    moveMotor(2, 92)
     moveMotor(6, 0)
 
     # raw_input()
     moveMotor(8, 15)
-    moveMotor(4, -90)
+    moveMotor(4, -88)
     # raw_input()
 
     moveMotor(5, 15)
@@ -288,11 +289,11 @@ def xToY():
 
 def yToX():
     moveMotor(6, 15)
-    moveMotor(2, -2)
+    moveMotor(2, -3)
     moveMotor(6, 0)
 
     moveMotor(7, 15)
-    moveMotor(3, -2)
+    moveMotor(3, -1)
     moveMotor(7, 0)
 
     moveMotor(5, 15)
@@ -300,7 +301,7 @@ def yToX():
     moveMotor(5, 0)
 
     moveMotor(8, 15)
-    moveMotor(4, 0)
+    moveMotor(4, -2)
     moveMotor(8, 0)
 
 def switch(state = "X"):
@@ -369,14 +370,14 @@ def findAndDrivePath(m, start, target, state):
     paths = findPath(m, start, target)
     m.printObstacleMap()
     m.printCostMap()
-    print("Generated paths:", paths)
+    print "Generated paths:", paths
     # raw_input("drive? ")
     # start = time.time()
     print ("state: ", state)
     state = drivePath(paths, state)
     return state
 
-    # print((time.time() - start))
+    # print (time.time() - start)
 
 def findPath(eecsmap, start, target):
     xSize, ySize = eecsmap.getCostmapSize(True), eecsmap.getCostmapSize(False)
@@ -413,6 +414,8 @@ def updateWalls(eecsmap, walls, curr):
 
 
 def wander(sensors, state, start = (0,0)):
+    correction_threshold = 2
+
     m = EECSMap()
     m.clearObstacleMap()
     m.clearCostMap()
@@ -431,16 +434,17 @@ def wander(sensors, state, start = (0,0)):
         if inRange(potential[0], potential[1]) and m.getNeighborObstacle(start[0], start[1], direc) == 0:
             targets.add(potential)
 
-    print("start", start)
+    print "start", start
     visited = set([start])
 
     m.printObstacleMap()
     m.printCostMap()
-    print("targets", targets)
-    print("visited", visited)
+    print "targets", targets
+    print "visited", visited
+
+    driven = 0
 
     while targets:
-        
 
         # find closest
         best_cost = float("inf")
@@ -449,17 +453,98 @@ def wander(sensors, state, start = (0,0)):
         # find best targets with individual cost map
         buildCostMap(m,curr)
         costs = [(m.getCost(t[0], t[1]), t) for t in targets]
-        # TODO tie break targets
-        best_target = min(costs, key=lambda x: x[0])[1]
+
+        # gather best_targets:
+        best_targets = []
+        min_cost = min(costs, key=lambda x: x[0])[0]
+        for c, t in costs:
+            if c == min_cost:
+                best_targets.append(t)
+
+        # tie break targets based on turns
+        print "best_targets", best_targets
+        best_target = None
+        best_target_turns = float("inf")
+        for t in best_targets:
+            buildCostMap(m, t)
+            path = findPath(m, curr, t)
+            if (state == 'X' and path[0] in (1,3)) or (state == 'Y' and path[0] in (2,4)):
+                turns = 1
+            else:
+                turns = 0
+            for i in range(1, len(path)):
+                if path[i-1] != path[i]:
+                    turns += 1
+
+            if turns < best_target_turns:
+                best_target_turns = turns
+                best_target = t
+
+        print "best_target", best_target
+        
         buildCostMap(m, best_target)
 
-        print("curr", curr)
-        print("targets", targets)
-        print("best_target", best_target)
-        print("visited", visited)
+        print "curr", curr
+        print "targets", targets
+        print "best_target", best_target
+        print "visited", visited
+        print "I've visited " + str(len(visited)) + ""
+
+        # save last direction
+        paths = findPath(m, curr, best_target)
+        prev_direction = ((paths[-1] + 1) % 4) + 1
+        prev_direction = ["", 'north', 'east', 'south', 'west'][prev_direction]
 
         # go to closest
-        state=findAndDrivePath(m,curr,best_target,state)
+        m.printObstacleMap()
+        m.printCostMap()
+        print "Generated paths:", paths
+        mapping = ['', 'n', 'e', 's', 'w']
+        for p in paths:
+            direc = mapping[p]
+            if direc == 'n':
+                curr = (curr[0]-1, curr[1])
+            elif direc == 'e':
+                curr = (curr[0], curr[1]+1)
+            elif direc == 's':
+                curr = (curr[0]+1, curr[1])
+            elif direc == 'w':
+                curr = (curr[0], curr[1]-1)
+            else:
+                raise Exception("Invalid Direction!")
+            state = drive(direc, state)
+            driven += 1
+
+            print "curr", curr
+
+            if driven > correction_threshold and curr in visited:
+                print m.getNeighborObstacle(0,5,DIRECTION.North)
+                walls = [m.getNeighborObstacle(curr[0], curr[1], d) for d in range(1,5)]
+                print "walls", walls
+                corners = ['ne','se','sw','nw']
+                corner = None
+                ii = -1
+                for i, c in enumerate([(0,1), (1,2), (2,3), (3,0)]):
+                    if walls[c[0]] + walls[c[1]] == 2:
+                        corner = corners[i]
+                        ii = i
+                        break
+
+                print "corner", corner
+                if corner:
+                    print "state", state
+                    if state == 'Y':
+                        state = correction(corners[ii][0], state)
+                        state = correction(corners[ii][1], state)
+                        state = correction(corners[ii][0], state)
+                        state = correction(corners[ii][1], state)
+                        driven = 0
+                    else:
+                        state = correction(corners[ii][1], state)
+                        state = correction(corners[ii][0], state)
+                        state = correction(corners[ii][1], state)
+                        state = correction(corners[ii][0], state)
+                        driven = 0
 
 
         # update curr
@@ -470,7 +555,29 @@ def wander(sensors, state, start = (0,0)):
 
         # sweep, update walls
         walls = detectWalls(sensors)
+        walls[prev_direction] = False
         updateWalls(m, walls, curr)
+
+        if driven > correction_threshold:
+                print m.getNeighborObstacle(0,5,DIRECTION.North)
+                walls = [m.getNeighborObstacle(curr[0], curr[1], d) for d in range(1,5)]
+                print "walls", walls
+                corners = ['ne','es','sw','wn']
+                corner = None
+                ii = -1
+                for i, c in enumerate([(0,1), (1,2), (2,3), (3,0)]):
+                    if walls[c[0]] + walls[c[1]] == 2:
+                        corner = corners[i]
+                        ii = i
+                        break
+
+                print "corner", corner
+                if corner:
+                    state = correction(corners[ii][0], state)
+                    state = correction(corners[ii][1], state)
+                    state = correction(corners[ii][0], state)
+                    state = correction(corners[ii][1], state)
+                    driven = 0
 
         # update targets
         for direc in range(1,5):
@@ -612,9 +719,9 @@ def go_to_state(statename):
         state = states[statename]
     elif type(statename) is list:
         state = statename
-    # print("Attempting", statename)
+    # print "Attempting", statename
     setMotorTargetPositionsSync(len(state), range(1,9), state)
-    # print("Completed", statename)
+    # print "Completed", statename
 
 def captureState(name):
     states = pickle.load( open("states.p", "rb"))
@@ -750,7 +857,6 @@ def correction(direction,state):
         setWheelSpeedSync(4, range(11,15), speeds)
         time.sleep(0.071)
 
-
     stopDrive()
 
-
+    return state
