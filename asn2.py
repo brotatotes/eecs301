@@ -124,9 +124,11 @@ if __name__ == "__main__":
 
         end = (x,y)
 
-        m = EECSMap()
+        m = states["map"]
         print "Setup done!"
         
+        
+        raw_input("Ready to go? ")
         STATE = findAndDrivePath(m, start, end, STATE)
         
         if e == 'X':
@@ -192,8 +194,6 @@ if __name__ == "__main__":
             print "Coordinates out of range."
             print "Quitting..."
             sys.exit()
-
-        raw_input("Ready to go? ")
 
         start = (x,y)
         STATE = wander(SENSORS,STATE, start)

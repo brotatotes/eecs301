@@ -358,17 +358,76 @@ def buildCostMap(m, target):
                 visited.add((tile[0], tile[1]))
 
 def findAndDrivePath(m, start, target, state):
-    paths = findPath(m, start, target)
-    m.printObstacleMap()
-    m.printCostMap()
+    # paths = findPath(m, start, target)
+    # m.printObstacleMap()
+    # m.printCostMap()
+    # print "Generated paths:", paths
+    # print ("state: ", state)
+    # state = drivePath(paths, state)
+    # return state
+    curr = start
+    correction_threshold = 2
+    driven = 0
+
+    buildCostMap(m, target)
+
+    # save last direction
+    paths = findPath(m, curr, target)
+    prev_direction = ((paths[-1] + 1) % 4) + 1
+    prev_direction = ["", 'north', 'east', 'south', 'west'][prev_direction]
+
+    # go to closest
+    
     print "Generated paths:", paths
-    # raw_input("drive? ")
-    # start = time.time()
-    print ("state: ", state)
-    state = drivePath(paths, state)
+    mapping = ['', 'n', 'e', 's', 'w']
+    for p in paths:
+        direc = mapping[p]
+        if direc == 'n':
+            curr = (curr[0]-1, curr[1])
+        elif direc == 'e':
+            curr = (curr[0], curr[1]+1)
+        elif direc == 's':
+            curr = (curr[0]+1, curr[1])
+        elif direc == 'w':
+            curr = (curr[0], curr[1]-1)
+        else:
+            raise Exception("Invalid Direction!")
+        state = drive(direc, state)
+        driven += 1
+
+        print "I'm now at " + str(curr)
+
+        if driven > correction_threshold:
+            walls = [m.getNeighborObstacle(curr[0], curr[1], d) for d in range(1,5)]
+            corners = ['ne','se','sw','nw']
+            corner = None
+            ii = -1
+            for i, c in enumerate([(0,1), (1,2), (2,3), (3,0)]):
+                if walls[c[0]] + walls[c[1]] == 2:
+                    corner = corners[i]
+                    ii = i
+                    break
+
+            if corner:
+                if state == 'Y':
+                    state = correction(corners[ii][0], state)
+                    state = correction(corners[ii][1], state)
+                    state = correction(corners[ii][0], state)
+                    state = correction(corners[ii][1], state)
+                    driven = 0
+                else:
+                    state = correction(corners[ii][1], state)
+                    state = correction(corners[ii][0], state)
+                    state = correction(corners[ii][1], state)
+                    state = correction(corners[ii][0], state)
+                    driven = 0
+
     return state
 
-    # print (time.time() - start)
+def printSavedMap():
+    states = pickle.load( open("states.p", "rb"))
+    states["map"].printObstacleMap()
+    print "visited", states["visited"]
 
 def findPath(eecsmap, start, target):
     xSize, ySize = eecsmap.getCostmapSize(True), eecsmap.getCostmapSize(False)
@@ -417,9 +476,15 @@ def wander(sensors, state, start = (0,0)):
     correction_threshold = 1
 
     curr = start
+    targets = set()
 
+    printSavedMap()
     clear = raw_input("Use saved map? (y/n) ")
-    if clear.lower() == 'n':
+    if clear.lower() == 'y' or clear == "":
+        m = states["map"]
+        visited = states["visited"]
+
+    else:
         m = EECSMap()
         m.clearObstacleMap()
         m.clearCostMap()
@@ -430,21 +495,14 @@ def wander(sensors, state, start = (0,0)):
         walls = fastSweep(sensors)
         updateWalls(m, walls, curr)
 
-        targets = set()
         visited = set([start])
         states["visited"] = visited
-
-    else:
-        m = states["map"]
-        visited = states["visited"]
-
-    raw_input("Ready to go?liuh ")
 
     # initialize targets
     for s in visited:
         for direc in range(1,5):
             potential = getNeighborCoord(s[0], s[1], direc)
-            if inRange(potential[0], potential[1]) and m.getNeighborObstacle(s[0], s[1], direc) == 0:
+            if inRange(potential[0], potential[1]) and m.getNeighborObstacle(s[0], s[1], direc) == 0 and not potential in visited:
                 targets.add(potential)
 
     m.printObstacleMap()
@@ -518,6 +576,7 @@ def wander(sensors, state, start = (0,0)):
             else:
                 raise Exception("Invalid Direction!")
             state = drive(direc, state)
+
             driven += 1
 
             print "I'm now at " + str(curr)
@@ -528,12 +587,29 @@ def wander(sensors, state, start = (0,0)):
                 corner = None
                 ii = -1
                 for i, c in enumerate([(0,1), (1,2), (2,3), (3,0)]):
-                    if walls[c[0]] + walls[c[1]] == 2:
+                    if sum([walls[cc] for cc in range(4)]) == 3:
+                        corner = "uturn"
+                        break
+                    elif walls[c[0]] + walls[c[1]] == 2:
                         corner = corners[i]
                         ii = i
                         break
 
-                if corner:
+                if corner == "uturn":
+                    if state == 'X':
+                        state = correction(corners[ii][0], state)
+                        state = correction(corners[ii][1], state)
+                        state = correction(corners[ii][0], state)
+                        state = correction(corners[ii][1], state)
+                        driven = 0
+                    else:
+                        state = correction(corners[ii][1], state)
+                        state = correction(corners[ii][0], state)
+                        state = correction(corners[ii][1], state)
+                        state = correction(corners[ii][0], state)
+                        driven = 0
+
+                elif corner:
                     if state == 'Y':
                         state = correction(corners[ii][0], state)
                         state = correction(corners[ii][1], state)
@@ -560,19 +636,42 @@ def wander(sensors, state, start = (0,0)):
         walls[prev_direction] = False
         updateWalls(m, walls, curr)
 
+        print "Updating visited..."
+        # update visited
+        visited.add(curr)
+
+        print "Updating targets..."
+        # update targets
+        for direc in range(1,5):
+            potential = getNeighborCoord(curr[0], curr[1], direc)
+
+            if allAdjacentsVisited(potential, visited):
+                visited.add(potential)
+                if potential in targets:
+                    targets.remove(potential)
+
+            if inRange(potential[0], potential[1]) and m.getNeighborObstacle(curr[0], curr[1], direc) == 0 and not potential in visited:
+                targets.add(potential)
+
+        if not targets:
+            break
+
         if driven > correction_threshold:
             walls = [m.getNeighborObstacle(curr[0], curr[1], d) for d in range(1,5)]
             corners = ['ne','se','sw','nw']
             corner = None
             ii = -1
             for i, c in enumerate([(0,1), (1,2), (2,3), (3,0)]):
-                if walls[c[0]] + walls[c[1]] == 2:
+                if sum([walls[cc] for cc in range(4)]) == 3:
+                    corner = "uturn"
+                    break
+                elif walls[c[0]] + walls[c[1]] == 2:
                     corner = corners[i]
                     ii = i
                     break
 
-            if corner:
-                if state == 'Y':
+            if corner == "uturn":
+                if state == 'X':
                     state = correction(corners[ii][0], state)
                     state = correction(corners[ii][1], state)
                     state = correction(corners[ii][0], state)
@@ -585,21 +684,19 @@ def wander(sensors, state, start = (0,0)):
                     state = correction(corners[ii][0], state)
                     driven = 0
 
-        print "Updating visited..."
-        # update visited
-        visited.add(curr)
-
-        print "Updating targets..."
-        # update targets
-        for direc in range(1,5):
-            potential = getNeighborCoord(curr[0], curr[1], direc)
-
-            if allAdjacentsVisited(potential, visited):
-                visited.add(potential)
-                targets.remove(potential)
-
-            if inRange(potential[0], potential[1]) and m.getNeighborObstacle(curr[0], curr[1], direc) == 0 and not potential in visited:
-                targets.add(potential)
+            elif corner:
+                if state == 'Y':
+                    state = correction(corners[ii][0], state)
+                    state = correction(corners[ii][1], state)
+                    state = correction(corners[ii][0], state)
+                    state = correction(corners[ii][1], state)
+                    driven = 0
+                else:
+                    state = correction(corners[ii][1], state)
+                    state = correction(corners[ii][0], state)
+                    state = correction(corners[ii][1], state)
+                    state = correction(corners[ii][0], state)
+                    driven = 0
 
 
         # save map
@@ -718,13 +815,13 @@ def sweepSensors(sensors):
     return avg
 
 def fastSweep(sensors):
-    threshold = 30
+    thresholds = [20, 30, 20, 20]
     ir1, ir2, dms = sensors
 
     # reset sensor orientation
     setMotorTargetSpeed(9,1023)
     setMotorTargetPositionCommand(9,deg_to_adc(1,0))
-    time.sleep(0.5)
+    time.sleep(0.2)
 
     reads = 11
 
@@ -732,7 +829,7 @@ def fastSweep(sensors):
     south = sorted([adc_to_cm(0, getSensorValue(dms)) for _ in range(reads)])
 
     setMotorTargetPositionCommand(9,deg_to_adc(1,90))
-    time.sleep(0.5)
+    time.sleep(0.2)
 
     west = sorted([adc_to_cm(1, getSensorValue(ir1)) for _ in range(reads)])
     east = sorted([adc_to_cm(0, getSensorValue(dms)) for _ in range(reads)])
@@ -740,8 +837,9 @@ def fastSweep(sensors):
     north, south, west, east = north[reads/2], south[reads/2], west[reads/2], east[reads/2]
 
     print "nswe:", north, south, west, east
+    print "nswe:", north < thresholds[0], south < thresholds[1], west < thresholds[2], east < thresholds[3]
 
-    return {"north": north < threshold, "south": south < threshold, "east": east < threshold, "west": west < threshold}
+    return {"north": north < thresholds[0], "south": south < thresholds[1], "east": east < thresholds[2], "west": west < thresholds[3]}
 
 
 def detectWalls(sensors):
