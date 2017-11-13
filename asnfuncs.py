@@ -159,11 +159,11 @@ def moveMotor(motor_id, deg):
         else:
             d = min(adc, r[0])
 
-    print("Attempting to move from", current_pos, "to", d, "within", r)
+    # print "Attempting to move from", current_pos, "to", d, "within", r
 
     return setMotorTargetPositionCommand(motor_id, d)
 
-    print("Motor move completed.")
+    # print "Motor move completed."
 
 def deg_to_adc(motor_id, deg):
     if motor_id in (5,8):
@@ -216,38 +216,41 @@ def drive(direction, state):
             state = 'Y'
         speeds = [1023, 2047, 1023, 2047]
         setWheelSpeedSync(4, range(11,15), speeds)
-        time.sleep(1.728)
+        time.sleep(1.62)
     elif d == "s":
         if state == 'X':
             xToY()
             state = 'Y'
         speeds = [2047, 1023, 2047, 1023]
         setWheelSpeedSync(4, range(11,15), speeds)
-        time.sleep(1.69)
+        time.sleep(1.6)
     elif d == "w":
         if state == 'Y':
             yToX()
             state = 'X'
         speeds = [1023, 1023, 2047, 2047]
         setWheelSpeedSync(4, range(11,15), speeds)
-        time.sleep(1.73)
+        time.sleep(1.63)
     elif d == "e":
         if state == 'Y':
             yToX()
             state = 'X'
         speeds = [2047, 2047, 1023, 1023]
         setWheelSpeedSync(4, range(11,15), speeds)
-        time.sleep(1.7)
+        time.sleep(1.62)
 
 
     stopDrive()
 
     return state
 
+
 def drivePath(path, state):
     mapping = ['', 'n', 'e', 's', 'w']
     for p in path:
         state = drive(mapping[p], state)
+
+    return state
 
 
 def wheelTurn():
@@ -272,12 +275,11 @@ def xToY():
     moveMotor(2, 90)
     moveMotor(6, 0)
 
-    # raw_input()
+
     moveMotor(8, 15)
     moveMotor(4, -90)
-    # raw_input()
-
     moveMotor(5, 15)
+
     moveMotor(1, -90)
     moveMotor(5, 0)
     moveMotor(8, 0)
@@ -286,11 +288,11 @@ def xToY():
 
 def yToX():
     moveMotor(6, 15)
-    moveMotor(2, -2)
+    moveMotor(2, 0)
     moveMotor(6, 0)
 
     moveMotor(7, 15)
-    moveMotor(3, -2)
+    moveMotor(3, -1)
     moveMotor(7, 0)
 
     moveMotor(5, 15)
@@ -298,23 +300,15 @@ def yToX():
     moveMotor(5, 0)
 
     moveMotor(8, 15)
-    moveMotor(4, 0)
+    moveMotor(4, -1)
     moveMotor(8, 0)
 
 def switch(state = "X"):
 
     if state == "X":
-        targets = [0,-2,-2,0]+[0] * 4
+        yToX()
     else:
-        targets = [-90, 90, 90, -90] + [0] *4
-
-    for i in range(1,9):
-        # setMotorWheelSpeed(i, 1000)
-        # moveMotor(i, targets[i-1])
-        # time.sleep(1)
-        targets[i-1] = deg_to_adc(i, targets[i-1])
-
-    setMotorTargetPositionsSync(8, range(1,9), targets)
+        xToY()
 
 
 
@@ -338,6 +332,7 @@ def inRange(i, j):
     return (i >= 0 and i <= 7 and j >= 0 and j <= 7)
 
 def buildCostMap(m, target):
+    m.clearCostMap()
     xSize, ySize = m.getCostmapSize(True), m.getCostmapSize(False)
     xRange, yRange = range(xSize), range(ySize)
 
@@ -362,22 +357,77 @@ def buildCostMap(m, target):
                 queue.append(newTile)
                 visited.add((tile[0], tile[1]))
 
-def newMap():
-    m = EECSMap()
-    m.clearObstacleMap()
-    return m
-
 def findAndDrivePath(m, start, target, state):
-    paths = findPath(m, start, target)
-    m.printObstacleMap()
-    m.printCostMap()
-    print("Generated paths:", paths)
-    # raw_input("drive? ")
-    # start = time.time()
-    state = drivePath(paths, state)
+    # paths = findPath(m, start, target)
+    # m.printObstacleMap()
+    # m.printCostMap()
+    # print "Generated paths:", paths
+    # print ("state: ", state)
+    # state = drivePath(paths, state)
+    # return state
+    curr = start
+    correction_threshold = 2
+    driven = 0
+
+    buildCostMap(m, target)
+
+    # save last direction
+    paths = findPath(m, curr, target)
+    prev_direction = ((paths[-1] + 1) % 4) + 1
+    prev_direction = ["", 'north', 'east', 'south', 'west'][prev_direction]
+
+    # go to closest
+    
+    print "Generated paths:", paths
+    mapping = ['', 'n', 'e', 's', 'w']
+    for p in paths:
+        direc = mapping[p]
+        if direc == 'n':
+            curr = (curr[0]-1, curr[1])
+        elif direc == 'e':
+            curr = (curr[0], curr[1]+1)
+        elif direc == 's':
+            curr = (curr[0]+1, curr[1])
+        elif direc == 'w':
+            curr = (curr[0], curr[1]-1)
+        else:
+            raise Exception("Invalid Direction!")
+        state = drive(direc, state)
+        driven += 1
+
+        print "I'm now at " + str(curr)
+
+        if driven > correction_threshold:
+            walls = [m.getNeighborObstacle(curr[0], curr[1], d) for d in range(1,5)]
+            corners = ['ne','se','sw','nw']
+            corner = None
+            ii = -1
+            for i, c in enumerate([(0,1), (1,2), (2,3), (3,0)]):
+                if walls[c[0]] + walls[c[1]] == 2:
+                    corner = corners[i]
+                    ii = i
+                    break
+
+            if corner:
+                if state == 'Y':
+                    state = correction(corners[ii][0], state)
+                    state = correction(corners[ii][1], state)
+                    state = correction(corners[ii][0], state)
+                    state = correction(corners[ii][1], state)
+                    driven = 0
+                else:
+                    state = correction(corners[ii][1], state)
+                    state = correction(corners[ii][0], state)
+                    state = correction(corners[ii][1], state)
+                    state = correction(corners[ii][0], state)
+                    driven = 0
+
     return state
 
-    # print((time.time() - start))
+def printSavedMap():
+    states = pickle.load( open("states.p", "rb"))
+    states["map"].printObstacleMap()
+    print "visited", states["visited"]
 
 def findPath(eecsmap, start, target):
     xSize, ySize = eecsmap.getCostmapSize(True), eecsmap.getCostmapSize(False)
@@ -406,80 +456,261 @@ def findPath(eecsmap, start, target):
 
     return path
 
-def updateWalls(eecsmap, walls):
-    if walls["north"]:
-        eecsmap.setObstacle(start[0], start[1], Direction.North)
+def updateWalls(eecsmap, walls, curr):
+    eecsmap.setObstacle(curr[0], curr[1], 1 if walls["north"] else 0, DIRECTION.North)
+    eecsmap.setObstacle(curr[0], curr[1], 1 if walls["south"] else 0, DIRECTION.South)
+    eecsmap.setObstacle(curr[0], curr[1], 1 if walls["west"] else 0, DIRECTION.West)
+    eecsmap.setObstacle(curr[0], curr[1], 1 if walls["east"] else 0, DIRECTION.East)
 
-    if walls["south"]:
-        eecsmap.setObstacle(start[0], start[1], Direction.South)
+def allAdjacentsVisited(potential, visited):
+    for direc in range(1,5):
+        adj = getNeighborCoord(potential[0], potential[1], direc)
+        if not adj in visited:
+            return False
 
-    if walls["west"]:
-        eecsmap.setObstacle(start[0], start[1], Direction.West)
-
-    if walls["east"]:
-        eecsmap.setObstacle(start[0], start[1], Direction.East)
+    return True
 
 
 def wander(sensors, state, start = (0,0)):
-    m = EECSMap()
-    m.clearObstacleMap()
-    m.clearCostMap()
+    states = pickle.load( open("states.p", "rb"))
+    correction_threshold = 1
 
     curr = start
-
-    visited = set(start)
-
     targets = set()
 
-    # update walls
-    walls = detectWalls(sensors)
-    updateWalls(m, walls)
+    printSavedMap()
+    clear = raw_input("Use saved map? (y/n) ")
+    if clear.lower() == 'y' or clear == "":
+        m = states["map"]
+        visited = states["visited"]
+
+    else:
+        m = EECSMap()
+        m.clearObstacleMap()
+        m.clearCostMap()
+        states["map"] = m
+
+
+        # update walls
+        walls = fastSweep(sensors)
+        updateWalls(m, walls, curr)
+
+        visited = set([start])
+        states["visited"] = visited
 
     # initialize targets
-    for direc in range(1,5):
-        potential = getNeighborCoord(start[0], start[1], direc)
-        if inRange(potential[0], potential[1]) and eecsmap.getNeighborObstacle(start[0], start[1], direc) == 0:
-            targets.add(potential)
+    for s in visited:
+        for direc in range(1,5):
+            potential = getNeighborCoord(s[0], s[1], direc)
+            if inRange(potential[0], potential[1]) and m.getNeighborObstacle(s[0], s[1], direc) == 0 and not potential in visited:
+                targets.add(potential)
+
+    m.printObstacleMap()
+    m.printCostMap()
+    print "targets", targets
+    print "visited", visited
+
+    driven = 0
+
+    start_time = time.time()
 
     while targets:
+        m.printObstacleMap()
+
         # find closest
         best_cost = float("inf")
         best_target = None
 
-        # grab all from targets
-        for t in targets:
+        # find best targets with individual cost map
+        buildCostMap(m,curr)
+        costs = [(m.getCost(t[0], t[1]), t) for t in targets]
+
+        # gather best_targets:
+        best_targets = []
+        min_cost = min(costs, key=lambda x: x[0])[0]
+        for c, t in costs:
+            if c == min_cost:
+                best_targets.append(t)
+
+        # tie break targets based on turns
+        best_target = None
+        best_target_turns = float("inf")
+        for t in best_targets:
             buildCostMap(m, t)
-            cost = m.getCost(start[0], start[1])
-            if cost > best_cost:
-                best_cost = cost
+            path = findPath(m, curr, t)
+            if (state == 'X' and path[0] in (1,3)) or (state == 'Y' and path[0] in (2,4)):
+                turns = 1
+            else:
+                turns = 0
+            for i in range(1, len(path)):
+                if path[i-1] != path[i]:
+                    turns += 1
+
+            if turns < best_target_turns:
+                best_target_turns = turns
                 best_target = t
 
-        if not best_target:
-            return
+        print "I've selected", best_target, "as my new target."
+        
+        buildCostMap(m, best_target)
+
+        # save last direction
+        paths = findPath(m, curr, best_target)
+        prev_direction = ((paths[-1] + 1) % 4) + 1
+        prev_direction = ["", 'north', 'east', 'south', 'west'][prev_direction]
 
         # go to closest
-        if curr != start:
-            path = findPath(m, start, best_target)
-            state = drive(path, state)
+        
+        print "Generated paths:", paths
+        mapping = ['', 'n', 'e', 's', 'w']
+        for p in paths:
+            direc = mapping[p]
+            if direc == 'n':
+                curr = (curr[0]-1, curr[1])
+            elif direc == 'e':
+                curr = (curr[0], curr[1]+1)
+            elif direc == 's':
+                curr = (curr[0]+1, curr[1])
+            elif direc == 'w':
+                curr = (curr[0], curr[1]-1)
+            else:
+                raise Exception("Invalid Direction!")
+            state = drive(direc, state)
+
+            driven += 1
+
+            print "I'm now at " + str(curr)
+
+            if driven > correction_threshold and curr in visited:
+                walls = [m.getNeighborObstacle(curr[0], curr[1], d) for d in range(1,5)]
+                corners = ['ne','se','sw','nw']
+                corner = None
+                ii = -1
+                for i, c in enumerate([(0,1), (1,2), (2,3), (3,0)]):
+                    if sum([walls[cc] for cc in range(4)]) == 3:
+                        corner = "uturn"
+                        break
+                    elif walls[c[0]] + walls[c[1]] == 2:
+                        corner = corners[i]
+                        ii = i
+                        break
+
+                if corner == "uturn":
+                    if state == 'X':
+                        state = correction(corners[ii][0], state)
+                        state = correction(corners[ii][1], state)
+                        state = correction(corners[ii][0], state)
+                        state = correction(corners[ii][1], state)
+                        driven = 0
+                    else:
+                        state = correction(corners[ii][1], state)
+                        state = correction(corners[ii][0], state)
+                        state = correction(corners[ii][1], state)
+                        state = correction(corners[ii][0], state)
+                        driven = 0
+
+                elif corner:
+                    if state == 'Y':
+                        state = correction(corners[ii][0], state)
+                        state = correction(corners[ii][1], state)
+                        state = correction(corners[ii][0], state)
+                        state = correction(corners[ii][1], state)
+                        driven = 0
+                    else:
+                        state = correction(corners[ii][1], state)
+                        state = correction(corners[ii][0], state)
+                        state = correction(corners[ii][1], state)
+                        state = correction(corners[ii][0], state)
+                        driven = 0
+
 
         # update curr
         curr = best_target
 
         # remove that from targets
-        targets.remove(curr)
+        targets.remove(best_target)
 
         # sweep, update walls
-        walls = detectWalls(sensors)
-        updateWalls(m, walls)
+        print "Sweeping..."
+        walls = fastSweep(sensors)
+        walls[prev_direction] = False
+        updateWalls(m, walls, curr)
 
+        print "Updating visited..."
+        # update visited
+        visited.add(curr)
+
+        print "Updating targets..."
         # update targets
         for direc in range(1,5):
             potential = getNeighborCoord(curr[0], curr[1], direc)
-            if inRange(potential[0], potential[1]) and eecsmap.getNeighborObstacle(start[0], start[1], direc) == 0:
+
+            if allAdjacentsVisited(potential, visited):
+                visited.add(potential)
+                if potential in targets:
+                    targets.remove(potential)
+
+            if inRange(potential[0], potential[1]) and m.getNeighborObstacle(curr[0], curr[1], direc) == 0 and not potential in visited:
                 targets.add(potential)
 
-        # update visited
-        visited.add(curr)
+        if not targets:
+            break
+
+        if driven > correction_threshold:
+            walls = [m.getNeighborObstacle(curr[0], curr[1], d) for d in range(1,5)]
+            corners = ['ne','se','sw','nw']
+            corner = None
+            ii = -1
+            for i, c in enumerate([(0,1), (1,2), (2,3), (3,0)]):
+                if sum([walls[cc] for cc in range(4)]) == 3:
+                    corner = "uturn"
+                    break
+                elif walls[c[0]] + walls[c[1]] == 2:
+                    corner = corners[i]
+                    ii = i
+                    break
+
+            if corner == "uturn":
+                if state == 'X':
+                    state = correction(corners[ii][0], state)
+                    state = correction(corners[ii][1], state)
+                    state = correction(corners[ii][0], state)
+                    state = correction(corners[ii][1], state)
+                    driven = 0
+                else:
+                    state = correction(corners[ii][1], state)
+                    state = correction(corners[ii][0], state)
+                    state = correction(corners[ii][1], state)
+                    state = correction(corners[ii][0], state)
+                    driven = 0
+
+            elif corner:
+                if state == 'Y':
+                    state = correction(corners[ii][0], state)
+                    state = correction(corners[ii][1], state)
+                    state = correction(corners[ii][0], state)
+                    state = correction(corners[ii][1], state)
+                    driven = 0
+                else:
+                    state = correction(corners[ii][1], state)
+                    state = correction(corners[ii][0], state)
+                    state = correction(corners[ii][1], state)
+                    state = correction(corners[ii][0], state)
+                    driven = 0
+
+
+        # save map
+        print "Auto-saved map!"
+        states["map"] = m
+        states["visited"] = visited
+        pickle.dump(states, open("states.p", "wb"))
+
+        print "I've spent ", time.time() - start_time, "seconds running."
+        print "I've visited all these tiles:", visited
+        print "That's " + str(len(visited)) + " tiles!"
+
+    m.printObstacleMap()
+    return state
 
 
 
@@ -549,6 +780,7 @@ def sweepSensors(sensors):
     irdata = {}
     dmsdata = {}
 
+    # reset sensor orientation
     setMotorTargetSpeed(9,1023)
     setMotorTargetPositionCommand(9,0)
     time.sleep(1)
@@ -582,15 +814,43 @@ def sweepSensors(sensors):
 
     return avg
 
+def fastSweep(sensors):
+    thresholds = [20, 30, 20, 20]
+    ir1, ir2, dms = sensors
+
+    # reset sensor orientation
+    setMotorTargetSpeed(9,1023)
+    setMotorTargetPositionCommand(9,deg_to_adc(1,0))
+    time.sleep(0.2)
+
+    reads = 11
+
+    north = sorted([adc_to_cm(1, getSensorValue(ir1)) for _ in range(reads)])
+    south = sorted([adc_to_cm(0, getSensorValue(dms)) for _ in range(reads)])
+
+    setMotorTargetPositionCommand(9,deg_to_adc(1,90))
+    time.sleep(0.2)
+
+    west = sorted([adc_to_cm(1, getSensorValue(ir1)) for _ in range(reads)])
+    east = sorted([adc_to_cm(0, getSensorValue(dms)) for _ in range(reads)])
+
+    north, south, west, east = north[reads/2], south[reads/2], west[reads/2], east[reads/2]
+
+    print "nswe:", north, south, west, east
+    print "nswe:", north < thresholds[0], south < thresholds[1], west < thresholds[2], east < thresholds[3]
+
+    return {"north": north < thresholds[0], "south": south < thresholds[1], "east": east < thresholds[2], "west": west < thresholds[3]}
+
+
 def detectWalls(sensors):
     avgs = sweepSensors(sensors)
-    threshold = 40
+    threshold = 35
 
     getVals = lambda start, end: [avgs[deg] for deg in range(start,end+1) if deg in avgs]
-    north = getVals(-180, -165) + getVals(165, 180)
-    south = getVals(-15, 15)
-    east = getVals(75, 105)
-    west = getVals (-105, -75)
+    north = getVals(-180, -155) + getVals(155, 180)
+    south = getVals(-25, 25)
+    east = getVals(65, 115)
+    west = getVals (-115, -65)
 
     return {"north": sum(north) / len(north) < threshold, "south": sum(south) / len(south) < threshold, "east": sum(east) / len(east) < threshold, "west": sum(west) / len(west) < threshold}
 
@@ -599,6 +859,7 @@ def detectWalls(sensors):
 #################################### State Management ####################################
 
 def go_to_default():
+
     go_to_state("default")
 
 
@@ -608,9 +869,9 @@ def go_to_state(statename):
         state = states[statename]
     elif type(statename) is list:
         state = statename
-    # print("Attempting", statename)
+    # print "Attempting", statename
     setMotorTargetPositionsSync(len(state), range(1,9), state)
-    # print("Completed", statename)
+    # print "Completed", statename
 
 def captureState(name):
     states = pickle.load( open("states.p", "rb"))
@@ -700,3 +961,52 @@ def straferight(cycles = 1):
     states = pickle.load( open("states.p", "rb"))
     b = [states["straferight1"], states["straferight2"]] * cycles
     doBehavior(b)
+
+def correction(direction,state):
+    for i in range(11,15):
+        setMotorMode(i, 1)
+    d = direction.lower()
+    if d == "n":
+        if state == 'X':
+            xToY()
+            state = 'Y'
+        speeds = [1023, 2047, 1023, 2047]
+        setWheelSpeedSync(4, range(11,15), speeds)
+        time.sleep(0.6)
+        speeds = [2047, 1023, 2047, 1023]
+        setWheelSpeedSync(4, range(11,15), speeds)
+        time.sleep(0.058)
+    elif d == "s":
+        if state == 'X':
+            xToY()
+            state = 'Y'
+        speeds = [2047, 1023, 2047, 1023]
+        setWheelSpeedSync(4, range(11,15), speeds)
+        time.sleep(0.6)
+        speeds = [1023, 2047, 1023, 2047]
+        setWheelSpeedSync(4, range(11,15), speeds)
+        time.sleep(0.061)
+    elif d == "w":
+        if state == 'Y':
+            yToX()
+            state = 'X'
+        speeds = [1023, 1023, 2047, 2047]
+        setWheelSpeedSync(4, range(11,15), speeds)
+        time.sleep(0.6)
+        speeds = [2047, 2047, 1023, 1023]
+        setWheelSpeedSync(4, range(11,15), speeds)
+        time.sleep(0.051)
+    elif d == "e":
+        if state == 'Y':
+            yToX()
+            state = 'X'
+        speeds = [2047, 2047, 1023, 1023]
+        setWheelSpeedSync(4, range(11,15), speeds)
+        time.sleep(0.6)
+        speeds = [1023, 1023, 2047, 2047]
+        setWheelSpeedSync(4, range(11,15), speeds)
+        time.sleep(0.071)
+
+    stopDrive()
+
+    return state

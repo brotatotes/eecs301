@@ -16,12 +16,12 @@ if __name__ == "__main__":
 
     # load states
     states = pickle.load( open("states.p", "rb"))
-    print("States loaded:", states.keys())
+    print len(states), "states loaded."
 
     stopDrive()
 
     # Sensor setup
-    IR1 = 4 # left
+    IR1 = 6 # left
     IR2 = 3 # right
     DMS = 3 # front
     SENSORS = (IR1, IR2, DMS)
@@ -30,15 +30,16 @@ if __name__ == "__main__":
     # IR 2 is port 2
 
     # control loop running at X Hz
-    r = rospy.Rate(1000) # 1000hz
+    r = rospy.Rate(10000) # 10000hz
 
     # select mode to run
-    print("Select one:")
-    print("0. asn2")
-    print("1. capture mode")
-    print("2. check sensors")
-    print("3. testing mode")
-
+    print "Select one:"
+    print "0. asn2 path finding"
+    print "1. capture mode"
+    print "2. check sensors"
+    print "3. testing mode"
+    print "4. asn2 wandering"
+    print "5. test"
     selection = raw_input(">>> ")
 
     # setup for each  mode
@@ -46,7 +47,7 @@ if __name__ == "__main__":
         releaseMotors()
         s = raw_input("What is the name of this state? ")
         captureState(s)
-        print(s, "saved")
+        print s, "saved"
         engageMotors()
         sys.exit()
 
@@ -123,7 +124,7 @@ if __name__ == "__main__":
 
         end = (x,y)
 
-        m = EECSMap()
+        m = states["map"]
         print "Setup done!"
         
         
@@ -157,23 +158,60 @@ if __name__ == "__main__":
         # plt.scatter([adc_to_deg(1,t[0]) for t in temp], [adc_to_cm(0, t[1]) for t in temp], c='b', label='dms')
         # plt.scatter([adc_to_deg(1,t[0]) - 170 if adc_to_deg(1,t[0]) > 0 else adc_to_deg(1,t[0]) + 190 for t in temp], [adc_to_cm(1, t[2]) for t in temp], c='r', label='ir1')
 
-        avgs = sweepSensors(SENSORS)
-        plt.scatter(avgs.keys(), avgs.values())
-        plt.show()
+        # avgs = sweepSensors(SENSORS)
+        # plt.scatter(avgs.keys(), avgs.values())
+        # plt.show()
         # while True:
         #     viewSensors(SENSORS)
-        print(detectWalls(avgs))
+        print fastSweep(SENSORS)
 
 
+    elif selection == "4":
+        starth = input("Select start heading:\n1. North\n2. East\n3. South\n4. West\n(Select 1-4): ")
+        print "You selected", starth
+        if not starth in [1,2,3,4]:
+            print "Failed. Please input a number 1 - 4"
+            print "Quitting..."
+            sys.exit()
+
+        elif starth in [1,3]:
+            s = 'Y'
+        else:
+            s = 'X'
+
+        switch(s)
+        STATE = s
+
+        print "Enter start coordinates (0-7):"
+        x = input("Enter i coordinate: ")
+        print "You selected", x        
+        y = input("Enter j coordinate: ")
+        print "You selected", y
+
+        print "start position = (" + str(x) + ", " + str(y) + ")\n"
+
+        if x < 0 or x > 7 or y < 0 or y > 7:
+            print "Coordinates out of range."
+            print "Quitting..."
+            sys.exit()
+
+        start = (x,y)
+        STATE = wander(SENSORS,STATE, start)
+
+    elif selection == "5":
+        state = 'Y'
+        switch(state)
+        raw_input()
+        for _ in range(4):
+            drive('n', state)
 
     else:
-        print("Invalid selection '" + selection + "' Quiting...")
+        print "Invalid selection '" + selection + "' Quiting..."
         sys.exit()
 
 
 
 
-    m = EECSMap()
     
     # STATE = drive('s', STATE)
     # STATE = drive('s', STATE)

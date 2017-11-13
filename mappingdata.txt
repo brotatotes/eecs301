@@ -1,0 +1,19 @@
+time: 249.68s
+wall hits: 22
+portion: 24 tiles
+
+time: 647.30s
+wall hits: 44
+portion: 54 tiles
+
+time: 6s
+1 tile scan
+
+time: 2s
+1 tile scan
+
+improve scanning speed
+
+time: 321.63s
+wall hits: 32 
+portion: 37 tiles
