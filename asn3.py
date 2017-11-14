@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from asnfuncs import *
 from learningfuncs import *
 import matplotlib.pyplot as plt
 
@@ -13,10 +14,21 @@ if __name__ == "__main__":
     rospy.loginfo("Starting Group X Control Node...")
 
     # Sensor setup
-    IR1 = 6 # left
-    IR2 = 3 # right
-    DMS = 3 # front
-    SENSORS = (IR1, IR2, DMS)
+    ir1 = 6
+    dms = 3
+
+    sensors = {"ir1":ir1, "dms": dms}
+
+    top_motor = 9
+    bot_motor = 1
+
+    motors = {"top_motor": top_motor, "bot_motor":bot_motor}
+
+    data_file = "data.csv"
+
+    context = {"sensors": sensors, "motors": motors, "data_file": data_file, "max_n": 10}
+
+    asn3 = Asn(context)
 
     # control loop running at X Hz
     r = rospy.Rate(10000) # 10000hz
@@ -25,6 +37,7 @@ if __name__ == "__main__":
     print "Select one:"
     print "0. check sensors"
     print "1. testing mode"
+    print "2. data collection"
     selection = raw_input(">>> ")
 
     if selection == "0":
@@ -37,12 +50,15 @@ if __name__ == "__main__":
             else:
                 moveMotor(6, 0)
                 f = True
-            viewSensors(SENSORS);
+            viewSensors(sensors);
 
         sys.exit()
 
     elif selection == "1":
-        print fastSweep(SENSORS)
+        pass
+
+    elif selection == "2":
+        pass
 
     else:
         print "Invalid selection '" + selection + "' Quiting..."
