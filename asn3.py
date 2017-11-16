@@ -26,7 +26,9 @@ if __name__ == "__main__":
 
     data_file = "data.csv"
 
-    context = {"sensors": sensors, "motors": motors, "data_file": data_file, "max_n": 10}
+    train_test_sizes = {"test_size": 0.2, "train_size": 0.8}
+
+    context = {"sensors": sensors, "motors": motors, "data_file": data_file, "max_n": 9, "train_test_sizes": train_test_sizes}
 
     asn3 = Asn3(context)
 

@@ -1,5 +1,5 @@
 # from asnfuncs import *
-import time, math
+import time, math, random
 
 # 3 inches from base of wall to front base of robot
 # use dms for higher resolution
@@ -14,8 +14,6 @@ class Asn3():
 		self.bot_motor = context["motors"]["bot_motor"]
 
 		self.data_file = context["data_file"]
-
-		self.max_n = context["max_n"]
 
 		self.onedeg = 3.41
 
@@ -56,11 +54,18 @@ class Asn3():
 		    df.write(row + "\n")
 		print "Saved!"
 
+
 class Asn3Learner():
 	def __init__(self, context):
 		self.data_file = context["data_file"]
-		self.max_n = context["max_n"]
+		# self.max_n = context["max_n"] # do we need this?
+
+		# constraint: train_size + test_size <= 1
+		self.train_size = context["train_test_sizes"]["train_size"]
+		self.test_size = context["train_test_sizes"]["test_size"]
+
 		self.read_data()
+		self.partition_data()
 
 	def read_data(self):
 		with open(self.data_file) as df:
@@ -82,9 +87,32 @@ class Asn3Learner():
 		return math.exp(-d)
 
 	def compute_result(self, x):
-		weights = [self.weigh(datum[1], x) for datum in self.data]
-		return sum([w * datum[0] for w,datum in zip(weights, self.data)]) / sum(weights)
+		weights = [self.weigh(datum[1], x) for datum in self.train_set]
+		return sum([w * datum[0] for w,datum in zip(weights, self.train_set)]) / sum(weights)
 
-m = Asn3Learner({"data_file":"data.csv", "max_n": 9})
-m.read_data()
-print m.compute_result([0,0,127,537,1279,1545,1753,1914,1990])
+	def partition_data(self):
+		random.seed(0)
+
+		n = len(self.data)
+		testn = int(0.2 * n)
+		test_sample_indices = random.sample(range(n), testn)
+
+		test_set = []
+		full_train_set = []
+
+		for i in range(n):
+			if i in test_sample_indices:
+				test_set.append(self.data[i])
+			else:
+				full_train_set.append(self.data[i])
+
+		self.test_set = test_set
+		self.train_set = random.sample(full_train_set, int((self.train_size + self.test_size) * len(full_train_set)))
+
+	def evaluate(self):
+		errors = []
+		for t in self.test_set:
+			errors.append(self.compute_result(t[1]) - t[0])
+
+		print errors
+		return errors
