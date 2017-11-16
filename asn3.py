@@ -28,7 +28,7 @@ if __name__ == "__main__":
 
     context = {"sensors": sensors, "motors": motors, "data_file": data_file, "max_n": 10}
 
-    asn3 = Asn(context)
+    asn3 = Asn3(context)
 
     # control loop running at X Hz
     r = rospy.Rate(10000) # 10000hz

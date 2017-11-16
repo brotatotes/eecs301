@@ -1,10 +1,10 @@
-from asnfuncs import *
-import time
+# from asnfuncs import *
+import time, math
 
 # 3 inches from base of wall to front base of robot
 # use dms for higher resolution
 
-class Asn():
+class Asn3():
 
 	def __init__(self, context):
 		self.dms = context["sensors"]["dms"]
@@ -52,7 +52,39 @@ class Asn():
 	def save_data(self, data):
 		print "Saving", data, "...",
 		row = ",".join(map(str, data))
-		with open("data.csv", "a") as df:
+		with open(self.data_file, "a") as df:
 		    df.write(row + "\n")
 		print "Saved!"
 
+class Asn3Learner():
+	def __init__(self, context):
+		self.data_file = context["data_file"]
+		self.max_n = context["max_n"]
+		self.read_data()
+
+	def read_data(self):
+		with open(self.data_file) as df:
+			df.readline()
+			data = df.readlines()
+
+		for i, d in enumerate(data):
+			parsed = map(int, d.replace("\n","").split(","))
+			data[i] = (parsed[-1], parsed[:-1])
+
+		self.data = data
+		return data
+
+	def distance(self, x1, x2):
+		return math.sqrt(sum([(i1 - i2)*(i1 - i2) for i1,i2 in zip(x1,x2)]))
+
+	def weigh(self, x1, x2):
+		d = self.distance(x1, x2)
+		return math.exp(-d)
+
+	def compute_result(self, x):
+		weights = [self.weigh(datum[1], x) for datum in self.data]
+		return sum([w * datum[0] for w,datum in zip(weights, self.data)]) / sum(weights)
+
+m = Asn3Learner({"data_file":"data.csv", "max_n": 9})
+m.read_data()
+print m.compute_result([0,0,127,537,1279,1545,1753,1914,1990])
