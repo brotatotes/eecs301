@@ -14,8 +14,8 @@ if __name__ == "__main__":
     rospy.loginfo("Starting Group X Control Node...")
 
     # Sensor setup
-    ir1 = 6
-    dms = 3
+    ir1 = 3
+    dms = 4
 
     sensors = {"ir1":ir1, "dms": dms}
 
@@ -36,7 +36,7 @@ if __name__ == "__main__":
     # select mode to run
     print "Select one:"
     print "0. check sensors"
-    print "1. testing mode"
+    print "1. test mode"
     print "2. data collection"
     selection = raw_input(">>> ")
 
@@ -55,10 +55,11 @@ if __name__ == "__main__":
         sys.exit()
 
     elif selection == "1":
-        pass
+        asn3.collect_datum(512)
 
     elif selection == "2":
-        pass
+        while True:
+            asn3.collect_data()
 
     else:
         print "Invalid selection '" + selection + "' Quiting..."
