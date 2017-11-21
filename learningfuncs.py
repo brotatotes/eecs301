@@ -71,12 +71,14 @@ class Asn3Learner():
 		self.train_size = context["train_test_sizes"]["train_size"]
 		self.test_size = context["train_test_sizes"]["test_size"]
 
+		self.calibration_factor = 0
+
 		self.read_data(self.data_file)
 		self.data = self.clean_data(self.data)
 		self.partition_data()
 
-		# self.test_set = self.clean_data(self.read_data(self.data_files["data2"]))
-		# self.train_set = self.clean_data(self.read_data(self.data_files["data1"]))
+		self.test_set = self.clean_data(self.read_data(self.data_files["data2"]))
+		self.train_set = self.clean_data(self.read_data(self.data_files["data1"]))
 
 	def read_data(self, data_file):
 		with open(data_file) as df:
@@ -98,6 +100,7 @@ class Asn3Learner():
 		return math.exp(-d)
 
 	def compute_result(self, x):
+		x = map(lambda xx: xx + self.calibration_factor, x)
 		weights = [self.weigh(datum[1], x) for datum in self.train_set]
 		return sum([w * datum[0] for w,datum in zip(weights, self.train_set)]) / (sum(weights) + np.finfo(np.float64).tiny)
 
@@ -120,12 +123,13 @@ class Asn3Learner():
 		self.test_set = test_set
 		self.train_set = random.sample(full_train_set, int((self.train_size + self.test_size) * len(full_train_set)))
 
-	def clean_data(self, data):
+	def clean_data(self, data, test=False):
 		maxx = 2000
 		minn = 700
 		data = filter(lambda x: 359 <= x[0] <= 665, data)
-		data = map(lambda x: [x[0], map(lambda y: 0 if y <= minn else y, x[1])], data)
-		data = map(lambda x: [x[0], map(lambda y: maxx if y > maxx else y, x[1])], data)
+		if data:
+			data = map(lambda x: [x[0], map(lambda y: 0 if y <= minn else y, x[1])], data)
+			data = map(lambda x: [x[0], map(lambda y: maxx if y > maxx else y, x[1])], data)
 		return data
 
 	def evaluate(self):
@@ -139,6 +143,47 @@ class Asn3Learner():
 			errors.append(er)
 
 		return errors
+
+	def calibrate(self, x, orientation_adc):
+		v = []
+		for d in self.data:
+			if d[0] == orientation_adc:
+				if not v:
+					v = [[i] for i in d[1]]
+				else:
+					for i in range(len(self.data[0][1])):
+						v[i].append(d[1][i])
+
+		v = map(lambda x: np.median(x), v)
+
+		d = self.distance(x, v)
+		prevd = float("inf")
+		c = 0
+
+		while d < prevd:
+			c += 1
+			v = map(lambda x: x + 1, v)
+			prevd = d
+			d = self.distance(x, v)
+
+		best_d = d
+		best_c = c
+
+		d = self.distance(x, v)
+		prevd = float("inf")
+		c = 0
+
+		while d < prevd:
+			c -= 1
+			v = map(lambda x: x - 1, v)
+			prevd = d
+			d = self.distance(x, v)
+
+		if d < best_d:
+			best_d = d
+			best_c = c
+
+		self.calibration_factor = -c
 
 	def plot_data_std(self, data_file):
 		data = self.clean_data(self.read_data(data_file))
@@ -186,6 +231,11 @@ if __name__ == "__main__":
 
 
 	l = Asn3Learner(context)
+
+	l.calibrate([1314,1525,1958,1827,1876,1941,1864,1733,1562], 514)
+	print l.calibration_factor
+
+
 	errors = l.evaluate()
 	print "calculated", len(errors), "data points"
 	print "max error:", max(errors)

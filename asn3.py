@@ -2,6 +2,7 @@
 from asnfuncs import *
 from learningfuncs import *
 import matplotlib.pyplot as plt
+import numpy as np
 
 # roscore
 # rosrun fw_wrapper srv_wrapper
@@ -31,6 +32,7 @@ if __name__ == "__main__":
     context = {"sensors": sensors, "motors": motors, "data_files": data_files, "max_n": 9, "train_test_sizes": train_test_sizes}
 
     asn3 = Asn3(context)
+    asn3l = Asn3Learner(context)
 
     # control loop running at X Hz
     r = rospy.Rate(10000) # 10000hz
@@ -40,6 +42,7 @@ if __name__ == "__main__":
     print "0. check sensors"
     print "1. test mode"
     print "2. data collection"
+    print "3. calibrate"
     selection = raw_input(">>> ")
 
     if selection == "0":
@@ -62,6 +65,14 @@ if __name__ == "__main__":
     elif selection == "2":
         while True:
             asn3.collect_data()
+
+    elif selection == "3":
+        orientation_adc = 514
+        a = asn3.collect_datum(orientation_adc)
+        b = asn3.collect_datum(orientation_adc)
+        c = [np.mean((a[i], b[i])) for i in range(len(a))]
+        asn3l.calibrate(c, orientation_adc)
+
 
     else:
         print "Invalid selection '" + selection + "' Quiting..."
