@@ -24,11 +24,11 @@ if __name__ == "__main__":
 
     motors = {"top_motor": top_motor, "bot_motor":bot_motor}
 
-    data_file = "data.csv"
+    data_files = {"data1": "data1.csv", "data2": "data2.csv"}
 
     train_test_sizes = {"test_size": 0.2, "train_size": 0.8}
 
-    context = {"sensors": sensors, "motors": motors, "data_file": data_file, "max_n": 9, "train_test_sizes": train_test_sizes}
+    context = {"sensors": sensors, "motors": motors, "data_files": data_files, "max_n": 9, "train_test_sizes": train_test_sizes}
 
     asn3 = Asn3(context)
 

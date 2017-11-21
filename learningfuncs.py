@@ -1,4 +1,4 @@
-# from asnfuncs import *
+from asnfuncs import *
 import time, math, random
 
 # 3 inches from base of wall to front base of robot
@@ -13,7 +13,7 @@ class Asn3():
 		self.top_motor = context["motors"]["top_motor"]
 		self.bot_motor = context["motors"]["bot_motor"]
 
-		self.data_file = context["data_file"]
+		self.data_files = context["data_files"]
 
 		self.onedeg = 3.41
 
@@ -50,14 +50,14 @@ class Asn3():
 	def save_data(self, data):
 		print "Saving", data, "...",
 		row = ",".join(map(str, data))
-		with open(self.data_file, "a") as df:
+		with open(self.data_files["data2"], "a") as df:
 		    df.write(row + "\n")
 		print "Saved!"
 
 
 class Asn3Learner():
 	def __init__(self, context):
-		self.data_file = context["data_file"]
+		self.data_files = context["data_files"]
 		# self.max_n = context["max_n"] # do we need this?
 
 		# constraint: train_size + test_size <= 1
@@ -68,7 +68,7 @@ class Asn3Learner():
 		self.partition_data()
 
 	def read_data(self):
-		with open(self.data_file) as df:
+		with open(self.data_files["data1"]) as df:
 			df.readline()
 			data = df.readlines()
 
