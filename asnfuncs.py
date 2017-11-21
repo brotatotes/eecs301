@@ -377,7 +377,7 @@ def findAndDrivePath(m, start, target, state):
     prev_direction = ["", 'north', 'east', 'south', 'west'][prev_direction]
 
     # go to closest
-    
+
     print "Generated paths:", paths
     mapping = ['', 'n', 'e', 's', 'w']
     for p in paths:
@@ -551,7 +551,7 @@ def wander(sensors, state, start = (0,0)):
                 best_target = t
 
         print "I've selected", best_target, "as my new target."
-        
+
         buildCostMap(m, best_target)
 
         # save last direction
@@ -560,7 +560,7 @@ def wander(sensors, state, start = (0,0)):
         prev_direction = ["", 'north', 'east', 'south', 'west'][prev_direction]
 
         # go to closest
-        
+
         print "Generated paths:", paths
         mapping = ['', 'n', 'e', 's', 'w']
         for p in paths:
@@ -971,7 +971,7 @@ def correction(direction,state):
             xToY()
             state = 'Y'
         speeds = [1023, 2047, 1023, 2047]
-        setWheelSpeedSync(4, range(11,15), speeds)
+        setWheelSpeedSync(4, [11,12,13,14], speeds)
         time.sleep(0.6)
         speeds = [2047, 1023, 2047, 1023]
         setWheelSpeedSync(4, range(11,15), speeds)
