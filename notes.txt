@@ -1,0 +1,3 @@
+Ran test and train data from two different runs. Process returned weights of 0 due to large distance between data sets. 
+
+Need to normalize data for data from different sets to be compatable. 

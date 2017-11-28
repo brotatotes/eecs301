@@ -1,4 +1,4 @@
-# from asnfuncs import *
+from asnfuncs import *
 import time, math, random
 import numpy as np
 import matplotlib.pyplot as plt
@@ -24,6 +24,8 @@ class Asn3():
 
 		self.tendeg = 34
 
+		self.learner = Asn3Learner(context)
+
 	def collect_data(self):
 		first = True
 		# 359 to 665 (inclusive)
@@ -40,7 +42,7 @@ class Asn3():
 		result = getMotorPositionCommand(self.bot_motor)
 		data.append(result)
 		self.save_data(data)
-
+		return data
 
 	def setup(self, orientation_adc):
 		setMotorTargetPositionCommand(self.bot_motor, orientation_adc)
@@ -50,15 +52,30 @@ class Asn3():
 		for adc in range(512 - self.tendeg * 4, 512 + self.tendeg * 4 + 1, self.tendeg):
 			setMotorTargetPositionCommand(self.top_motor, adc)
 			time.sleep(0.5)
-			vals.append(sorted([getSensorValue(self.dms)]*5)[2])
+			vals.append(sorted([getSensorValue(self.dms) for _ in range(5)])[2])
 		return vals
 
 	def save_data(self, data):
 		print "Saving", data, "...",
 		row = ",".join(map(str, data))
-		with open(self.data_files["data2"], "a") as df:
+		with open(self.data_files["data3"], "a") as df:
 		    df.write(row + "\n")
 		print "Saved!"
+
+	def calibrate(self):
+		data1 = self.collect_datum(512, True)
+
+		data2 = self.collect_datum(512, True)
+
+		data3 = self.collect_datum(512, True)
+
+		data = []
+		for i in range(len(data1)):
+			data.append(sorted([data1[i], data2[i], data3[i]])[1])
+
+		print data[:-1], data[-1]
+		self.learner.calibrate(data[:-1], 510)
+		print self.learner.calibration_factor
 
 
 class Asn3Learner():
@@ -93,16 +110,23 @@ class Asn3Learner():
 		return data
 
 	def distance(self, x1, x2):
-		return math.sqrt(sum([(i1 - i2)*(i1 - i2) for i1,i2 in zip(x1,x2)]))
+		return math.sqrt(sum([abs(i1 - i2) for i1,i2 in zip(x1,x2)]))
 
 	def weigh(self, x1, x2):
 		d = self.distance(x1, x2)
 		return math.exp(-d)
 
 	def compute_result(self, x):
+		minn = 700
+		maxx = 2000
 		x = map(lambda xx: xx + self.calibration_factor, x)
+		x = map(lambda xx: 0 if xx <= minn else xx, x)
+		x = map(lambda xx: maxx if xx > maxx else xx, x)
 		weights = [self.weigh(datum[1], x) for datum in self.train_set]
-		return sum([w * datum[0] for w,datum in zip(weights, self.train_set)]) / (sum(weights) + np.finfo(np.float64).tiny)
+		res = sum([w * datum[0] for w,datum in zip(weights, self.train_set)]) / (sum(weights) + np.finfo(np.float64).tiny)
+		if res < 359 or res > 665:
+			print x, weights
+		return res
 
 	def partition_data(self):
 		random.seed(0)
@@ -141,6 +165,12 @@ class Asn3Learner():
 			# print "computed:", self.compute_result(t[1]), "\nactual", t[0], "\nerror:", er
 			# print
 			errors.append(er)
+
+		print "calculated", len(errors), "data points"
+		print "max error:", max(errors)
+		print "min error:", min(errors)
+		print "median error:", np.median(errors)
+		print "avg error:", np.mean(errors)
 
 		return errors
 
@@ -232,16 +262,12 @@ if __name__ == "__main__":
 
 	l = Asn3Learner(context)
 
-	l.calibrate([1314,1525,1958,1827,1876,1941,1864,1733,1562], 514)
+	l.calibrate([1279,1679,1689,1937,1876,1954,1880,1891,1577],510)
 	print l.calibration_factor
 
 
 	errors = l.evaluate()
-	print "calculated", len(errors), "data points"
-	print "max error:", max(errors)
-	print "min error:", min(errors)
-	print "median error:", np.median(errors)
-	print "avg error:", np.mean(errors)
+	
 
 	# l.plot_data_std("data1.csv")
 
