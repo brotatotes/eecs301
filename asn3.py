@@ -44,7 +44,7 @@ if __name__ == "__main__":
     print "0. check sensors"
     print "1. test mode"
     print "2. data collection"
-    print "3. asn3 orientation demo"
+    print "3. asn3 orientation"
     print "4. asn3 PID demo"
     selection = raw_input(">>> ")
 
@@ -124,7 +124,7 @@ if __name__ == "__main__":
         raw_input("Turn robot to a desired orientation. Hit Enter when done.")
 
         orientation_adc = getMotorPositionCommand(bot_motor)
-        print "You've turned it to", orientation_adc, "adc."
+        print "You've turned it to", (orientation_adc -359) / 3.41, "degrees."
 
         if orientation_adc < 359 or orientation_adc > 665:
             print "This is out of range, I'll adjust it."
@@ -150,7 +150,7 @@ if __name__ == "__main__":
             print "Adjusted to", angle, "degrees"
 
         orientation_adc = int((angle * 3.41) + 359)
-        print "You selected", angle, "degrees, which is", (orientation_adc -359) / 3.41, "degrees."
+        print "You selected", angle, "degrees."
 
         prev = None
         serrs = 0
@@ -166,8 +166,8 @@ if __name__ == "__main__":
                 adc = asn3.learner.compute_result(vals)
                 if adc < 359 or adc > 665:
                     print "Result out of range. Re-scanning."
-            print "guess:", (adc -359) / 3.41
-            print "actual:", (getMotorPositionCommand(bot_motor) - 459) / 3.41
+            print "guess:", (adc -359) / 3.41, "degrees"
+            print "actual:", (getMotorPositionCommand(bot_motor) - 359) / 3.41, "degrees"
 
             err = orientation_adc - adc
             if prev == None:
@@ -179,7 +179,7 @@ if __name__ == "__main__":
 
             effort = a * err + b * diff + c * serrs
 
-            print "effort:", effort
+            print "effort:", effort / 3.41, "degrees"
             print
 
             setMotorMode(bot_motor, 0)
